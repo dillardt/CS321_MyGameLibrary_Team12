@@ -7,15 +7,16 @@ public class Review {
     private User author;
     private Game game;
 
-    public Review(int rating, String comment, User author, Game game) {
+    public Review(int rating, String comment, User author, Game game) {}
 
-    }
+    public int getRating() {}
+    public String getComment() {}
+    public User getAuthor() {}
+    public Game getGame() {}
 
-    public void editReview(String newText, int newRating) { }
-    public void deleteReview() { }
+    public boolean editReview(String newComment, int newRating) {}
+    public String getSummary() {}
 
-    public int getRating() { return 0; }
-    public String getComment() { return null; }
-    public User getAuthor() { return null; }
-    public Game getGame() { return null; }
+    @Override
+    public String toString() {}
 }
