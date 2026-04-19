@@ -1,8 +1,11 @@
 package Model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class User {
+
+    private static final int MAX_RECENTLY_VIEWED = 10;
 
     private String username;
     private String passwordHash;
@@ -10,26 +13,26 @@ public class User {
     private List<Review> reviews;
     private List<Game> recentlyViewed;
 
-    public User(String username, String password) {
+    public User(String username, String passwordHash) {}
 
-    }
+    public String getUsername() {}
+    public String getPasswordHash() {}
 
-    public User(String username, String passwordHash, boolean fromFile) {
+    public boolean authenticate(String inputHash) {}
 
-    }
+    public List<Collection> getCollections() {}
+    public Collection getCollectionByName(String name) {}
+    public boolean addCollection(Collection collection) {}
+    public boolean removeCollection(String name) {}
 
-    public Collection createCollection(String name) { return null; }
-    public boolean deleteCollection(String name) { return false; }
-    public void addGameToCollection(Game game, String collectionName) { }
-    public void removeGameFromCollection(Game game, String collectionName) { }
-    public void addReview(Game game, Review review) { }
-    public void addRecentlyViewed(Game game) { }
-    public void logout() { }
-    public boolean authenticate(String password) { return false; }
+    public List<Review> getReviews() {}
+    public Review getReviewByGame(Game game) {}
+    public boolean addReview(Review review) {}
+    public boolean removeReview(Review review) {}
 
-    public String getUsername() { return null; }
-    public String getPasswordHash() { return null; }
-    public List<Collection> getCollections() { return null; }
-    public List<Review> getReviews() { return null; }
-    public List<Game> getRecentlyViewed() { return null; }
+    public List<Game> getRecentlyViewed() {}
+    public void addRecentlyViewed(Game game) {}
+
+    @Override
+    public String toString() {}
 }
