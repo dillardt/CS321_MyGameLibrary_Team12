@@ -4,16 +4,22 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Manages all registered users — handles file persistence, account creation, and login. */
 public class UserDatabase {
 
     private List<User> users;
     private final String fileLocation;
 
+    /**
+     * Sets up the database pointing at the given file — call loadUsers() to actually read it.
+     * @param fileLocation path to the CSV file
+     */
     public UserDatabase(String fileLocation) {
         this.fileLocation = fileLocation;
         this.users        = new ArrayList<>();
     }
 
+    /** Reads users from the CSV file — skips malformed lines, warns if file is missing. */
     public void loadUsers() {
         users.clear();
         File file = new File(fileLocation);
@@ -57,6 +63,7 @@ public class UserDatabase {
         }
     }
 
+    /** Overwrites the CSV file with all users currently in memory. */
     public void saveUsers() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileLocation, false))) {
             for (User user : users) {
@@ -69,6 +76,11 @@ public class UserDatabase {
         }
     }
 
+    /**
+     * Finds a user by username, case-insensitive.
+     * @param username the username to look up
+     * @return matching user, or null if not found
+     */
     public User getUser(String username) {
         if (username == null || username.isBlank()) return null;
         String normalized = username.toLowerCase();
@@ -78,13 +90,25 @@ public class UserDatabase {
         return null;
     }
 
+    /** @return defensive copy of all registered users */
     public List<User> getAllUsers() { return new ArrayList<>(users); }
 
+    /**
+     * Checks if a username is already taken, case-insensitive.
+     * @param username the username to check
+     * @return true if taken, false if free or input is blank
+     */
     public boolean userExists(String username) {
         if (username == null || username.isBlank()) return false;
         return getUser(username) != null;
     }
 
+    /**
+     * Creates a new account — rejects blank inputs and duplicate usernames.
+     * @param username     desired username
+     * @param passwordHash hashed password
+     * @return true if created, false if invalid or duplicate
+     */
     public boolean createUser(String username, String passwordHash) {
         if (username == null || username.isBlank()) return false;
         if (passwordHash == null || passwordHash.isBlank()) return false;
@@ -93,6 +117,11 @@ public class UserDatabase {
         return true;
     }
 
+    /**
+     * Deletes an account by username, case-insensitive.
+     * @param username the account to delete
+     * @return true if deleted, false if not found or blank
+     */
     public boolean deleteUser(String username) {
         if (username == null || username.isBlank()) return false;
         User target = getUser(username);
@@ -101,6 +130,12 @@ public class UserDatabase {
         return true;
     }
 
+    /**
+     * Verifies login credentials — delegates the password check to User.
+     * @param username     the username attempting to log in
+     * @param passwordHash the hash to verify
+     * @return true if valid, false if user not found or password wrong
+     */
     public boolean authenticate(String username, String passwordHash) {
         if (username == null || username.isBlank()) return false;
         if (passwordHash == null || passwordHash.isBlank()) return false;
