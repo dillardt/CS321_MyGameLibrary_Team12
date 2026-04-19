@@ -50,10 +50,29 @@ public class Game {
                 + "Description: " + description;
     }
 
-    public boolean matchesSearch(String criteria) { return false; }
+    public boolean matchesSearch(String criteria) {
+
+        if (criteria == null || criteria.isBlank()) {
+            return false;
+        }
+
+        String query = criteria.toLowerCase();
+
+        String safeTitle = (title != null) ? title.toLowerCase() : "";
+        String safeGenre = (genre != null) ? genre.toLowerCase() : "";
+        String safeDescription = (description != null) ? description.toLowerCase() : "";
+
+        return safeTitle.contains(query)
+                || safeGenre.contains(query)
+                || safeDescription.contains(query);
+    }
 
     public String getSummary() {
         return title + " | " + genre + " | Rating: "
                 + String.format("%.1f", averageRating);
+    }
+    @Override
+    public String toString() {
+        return getSummary();
     }
 }
