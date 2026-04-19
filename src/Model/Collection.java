@@ -21,17 +21,33 @@ public class Collection {
 
     public List<Game> getGames() { return new ArrayList<>(games); }
 
+    public boolean addGame(Game game) {
+        if (game == null) return false;
+        if (games.contains(game)) return false;
+        games.add(game);
+        return true;
+    }
+
+    public boolean removeGame(Game game) {
+        if (game == null) return false;
+        return games.remove(game);
+    }
+
     public boolean containsGame(Game game) {
         if (game == null) return false;
         return games.contains(game);
+    }
+
+    public Game getGameById(String gameID) {
+        if (gameID == null || gameID.isBlank()) return null;
+        for (Game game : games) {
+            if (game.getGameID().equals(gameID)) return game;
+        }
+        return null;
     }
 
     @Override
     public String toString() {
         return name + " (" + games.size() + " games)";
     }
-
-    public boolean addGame(Game game) {}
-    public boolean removeGame(Game game) {}
-    public Game getGameById(String gameID) {}
 }
