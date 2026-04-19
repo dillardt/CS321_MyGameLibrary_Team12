@@ -98,7 +98,11 @@ public class User {
     public Review getReviewByGame(Game game) {
         if (game == null) return null;
         for (Review r : reviews) {
-            if (r.getGame() == game) return r;
+            if (r.getGame() != null
+                    && r.getGame().getGameID() != null
+                    && r.getGame().getGameID().equals(game.getGameID())) {
+                return r;
+            }
         }
         return null;
     }
