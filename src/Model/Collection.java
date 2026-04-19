@@ -7,7 +7,7 @@ import java.util.List;
 public class Collection {
 
     private String name;
-    private List<Game> games;
+    private final List<Game> games;
 
     /**
      * Creates an empty collection with the given name.

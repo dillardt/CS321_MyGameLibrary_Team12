@@ -43,11 +43,7 @@ public class Game {
 
         if (averageRating < 0.0) {
             this.averageRating = 0.0;
-        } else if (averageRating > 10.0) {
-            this.averageRating = 10.0;
-        } else {
-            this.averageRating = averageRating;
-        }
+        } else this.averageRating = Math.min(averageRating, 10.0);
     }
 
     /** @return game ID */

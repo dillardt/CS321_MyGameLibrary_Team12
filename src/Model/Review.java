@@ -10,11 +10,7 @@ public class Review {
     public Review(int rating, String comment, User author, Game game) {
         if (rating < 1) {
             this.rating = 1;
-        } else if (rating > 10) {
-            this.rating = 10;
-        } else {
-            this.rating = rating;
-        }
+        } else this.rating = Math.min(rating, 10);
 
         if (comment == null || comment.isBlank()) {
             this.comment = "No comment provided.";
@@ -31,9 +27,29 @@ public class Review {
     public User getAuthor() { return author; }
     public Game getGame() { return game; }
 
-    public boolean editReview(String newComment, int newRating) {}
-    public String getSummary() {}
+    public boolean editReview(String newComment, int newRating) {
+        if (newComment == null || newComment.isBlank()) return false;
+
+        if (newRating < 1) {
+            newRating = 1;
+        } else if (newRating > 10) {
+            newRating = 10;
+        }
+
+        this.comment = newComment;
+        this.rating  = newRating;
+        return true;
+    }
+
+    public String getSummary() {
+        String username   = (author != null) ? author.getUsername() : "Unknown";
+        String safeComment = (comment != null) ? comment : "";
+        String preview = safeComment.length() > 50
+                ? safeComment.substring(0, 50) + "..."
+                : safeComment;
+        return username + " | Rating: " + rating + "/10 | " + preview;
+    }
 
     @Override
-    public String toString() {}
+    public String toString() { return getSummary(); }
 }
