@@ -1,20 +1,31 @@
 package Model;
 
+import org.w3c.dom.*;
+import javax.xml.parsers.*;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class GameDatabase {
 
     private List<Game> games;
-    private String filePath;
+    private String fileLocation;
 
-    public GameDatabase(String filePath) {
+    public GameDatabase(String fileLocation) {}
 
-    }
+    public void loadGames() {}
 
-    public void loadGames() { }
-    public void saveGames() { }
-    public List<Game> searchGames(String criteria) { return null; }
-    public Game getGameByID(String id) { return null; }
-    public List<Game> filterGames(String genre, int players, double minRating) { return null; }
-    public List<Game> getAll() { return null; }
+    private Game parseGameNode(Node gameNode, int entryNum) {}
+    private String parseTextField(Node parent, String fieldName) {}
+    private int parseIntField(Node parent, String fieldName) {}
+    private double parseDoubleField(Node parent, String fieldName) {}
+
+    public Game getGameByID(String gameID) {}
+    public List<Game> getAll() {}
+
+    public List<Game> searchGames(String criteria) {}
+    public List<Game> filterGames(String genre, int playerCount, double minRating) {}
+
+    @Override
+    public String toString() {}
 }
