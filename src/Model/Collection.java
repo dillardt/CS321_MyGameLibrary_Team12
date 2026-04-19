@@ -1,5 +1,6 @@
 package Model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Collection {
@@ -7,13 +8,18 @@ public class Collection {
     private String name;
     private List<Game> games;
 
-    public Collection(String name) {
+    public Collection(String name) {}
 
-    }
+    public String getName() {}
+    public void setName(String name) {}
+    public int getSize() {}
+    public List<Game> getGames() {}
 
-    public void addGame(Game game) { }
-    public void removeGame(Game game) { }
-    public List<Game> getGames() { return null; }
-    public String getName() { return null; }
-    public void setName(String name) { }
+    public boolean addGame(Game game) {}
+    public boolean removeGame(Game game) {}
+    public boolean containsGame(Game game) {}
+    public Game getGameById(String gameID) {}
+
+    @Override
+    public String toString() {}
 }
