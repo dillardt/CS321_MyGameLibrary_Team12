@@ -1,5 +1,9 @@
 package Model;
 
+/**
+ * A single board game stored in the system.
+ * This class holds only data. No business rules live here.
+ */
 public class Game {
 
     private final String gameID;
@@ -11,6 +15,19 @@ public class Game {
     private final String imagePath;
     private final double averageRating;
 
+    /**
+     * Builds a game object with all required fields.
+     * Rating stays within 0 to 10.
+     *
+     * @param gameID unique identifier for the game
+     * @param title game title
+     * @param genre game category
+     * @param minPlayers minimum number of players
+     * @param maxPlayers maximum number of players
+     * @param description full description of the game
+     * @param imagePath image file path or URL
+     * @param averageRating starting average rating (0 to 10 range)
+     */
     public Game(String gameID, String title, String genre,
                 int minPlayers, int maxPlayers,
                 String description, String imagePath,
@@ -33,15 +50,35 @@ public class Game {
         }
     }
 
+    /** @return game ID */
     public String getGameID() { return gameID; }
+
+    /** @return title */
     public String getTitle() { return title; }
+
+    /** @return genre */
     public String getGenre() { return genre; }
+
+    /** @return minimum players */
     public int getMinPlayers() { return minPlayers; }
+
+    /** @return maximum players */
     public int getMaxPlayers() { return maxPlayers; }
+
+    /** @return description */
     public String getDescription() { return description; }
+
+    /** @return image path */
     public String getImagePath() { return imagePath; }
+
+    /** @return average rating */
     public double getAverageRating() { return averageRating; }
 
+    /**
+     * Full formatted details of the game.
+     *
+     * @return multi-line string with all key fields
+     */
     public String getDetails() {
         return "Title: " + title + "\n"
                 + "Genre: " + genre + "\n"
@@ -50,6 +87,22 @@ public class Game {
                 + "Description: " + description;
     }
 
+    /**
+     * Short summary for lists and search results.
+     *
+     * @return one-line game summary
+     */
+    public String getSummary() {
+        return title + " | " + genre + " | Rating: "
+                + String.format("%.1f", averageRating);
+    }
+
+    /**
+     * Checks if this game matches a search query.
+     *
+     * @param criteria search text entered by user
+     * @return true if match is found in title, genre, or description
+     */
     public boolean matchesSearch(String criteria) {
 
         if (criteria == null || criteria.isBlank()) {
@@ -67,10 +120,11 @@ public class Game {
                 || safeDescription.contains(query);
     }
 
-    public String getSummary() {
-        return title + " | " + genre + " | Rating: "
-                + String.format("%.1f", averageRating);
-    }
+    /**
+     * String representation of the game.
+     *
+     * @return summary format
+     */
     @Override
     public String toString() {
         return getSummary();
