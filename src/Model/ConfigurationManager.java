@@ -2,6 +2,10 @@ package Model;
 
 import java.io.*;
 
+/**
+ * Holds file paths for the system config.
+ * Reads and writes a simple key=value file.
+ */
 public class ConfigurationManager {
 
     private static final String KEY_GAME_DB = "gameDBPath";
@@ -11,12 +15,19 @@ public class ConfigurationManager {
     private String gameDBPath;
     private String userDBPath;
 
+    /**
+     * Create config manager with file path.
+     * @param configFilePath path to config file
+     */
     public ConfigurationManager(String configFilePath) {
         this.configFilePath = configFilePath;
         this.gameDBPath = null;
         this.userDBPath = null;
     }
 
+    /**
+     * Read config file and set paths.
+     */
     public void loadConfiguration() {
 
         gameDBPath = null;
@@ -63,6 +74,9 @@ public class ConfigurationManager {
         }
     }
 
+    /**
+     * Write current paths to config file.
+     */
     public void saveConfiguration() {
 
         try (BufferedWriter writer = new BufferedWriter(
@@ -87,23 +101,28 @@ public class ConfigurationManager {
         }
     }
 
+    /** @return game database path */
     public String getGameDBPath() {
         return gameDBPath;
     }
 
+    /** @return user database path */
     public String getUserDBPath() {
         return userDBPath;
     }
 
+    /** @return config file path */
     public String getConfigFilePath() {
         return configFilePath;
     }
 
+    /** @return true if both paths are set */
     public boolean isValid() {
         return gameDBPath != null && !gameDBPath.isBlank()
                 && userDBPath != null && !userDBPath.isBlank();
     }
 
+    /** @return debug string */
     @Override
     public String toString() {
         return "ConfigurationManager | Config: " + configFilePath
