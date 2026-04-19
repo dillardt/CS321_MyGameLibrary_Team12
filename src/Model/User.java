@@ -7,32 +7,48 @@ public class User {
 
     private static final int MAX_RECENTLY_VIEWED = 10;
 
-    private String username;
-    private String passwordHash;
+    private final String username;
+    private final String passwordHash;
     private List<Collection> collections;
     private List<Review> reviews;
     private List<Game> recentlyViewed;
 
-    public User(String username, String passwordHash) {}
+    public User(String username, String passwordHash) {
+        this.username     = username;
+        this.passwordHash = passwordHash;
+        this.collections    = new ArrayList<>();
+        this.reviews        = new ArrayList<>();
+        this.recentlyViewed = new ArrayList<>();
+    }
 
-    public String getUsername() {}
-    public String getPasswordHash() {}
+    public String getUsername() { return username; }
+    public String getPasswordHash() { return passwordHash; }
 
-    public boolean authenticate(String inputHash) {}
+    public boolean authenticate(String inputHash) {
+        if (inputHash == null) return false;
+        return passwordHash.equals(inputHash);
+    }
 
-    public List<Collection> getCollections() {}
+    public List<Collection> getCollections() { return new ArrayList<>(collections); }
+
+    public List<Review> getReviews() { return new ArrayList<>(reviews); }
+
+    public List<Game> getRecentlyViewed() { return new ArrayList<>(recentlyViewed); }
+
+    @Override
+    public String toString() {
+        return username
+                + " | Collections: " + collections.size()
+                + " | Reviews: "     + reviews.size();
+    }
+
     public Collection getCollectionByName(String name) {}
     public boolean addCollection(Collection collection) {}
     public boolean removeCollection(String name) {}
 
-    public List<Review> getReviews() {}
     public Review getReviewByGame(Game game) {}
     public boolean addReview(Review review) {}
     public boolean removeReview(Review review) {}
 
-    public List<Game> getRecentlyViewed() {}
     public void addRecentlyViewed(Game game) {}
-
-    @Override
-    public String toString() {}
 }
