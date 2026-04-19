@@ -6,16 +6,36 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Loads and manages all board games from XML — supports search, filter, and ID lookup.
+ *  * XML format expected:
+ *            <games>
+ *                <game id="...">
+ *                <title value="..."/>
+ *                <genre value="..."/>
+ *                <minPlayers value="..."/>
+ *                <maxPlayers value="..."/>
+ *                <description value="..."/>
+ *                <imagePath value="..."/>
+ *                <averageRating value="..."/>
+ *              </game>
+ *            </games>
+ */
+
 public class GameDatabase {
 
     private List<Game> games;
     private final String fileLocation;
 
+    /**
+     * Sets up the database pointing at the given file — call loadGames() to actually read it.
+     * @param fileLocation path to the XML file
+     */
     public GameDatabase(String fileLocation) {
         this.fileLocation = fileLocation;
         this.games        = new ArrayList<>();
     }
 
+    /** Reads all games from the XML file — skips malformed entries, warns if file is missing. */
     public void loadGames() {
         games.clear();
         File file = new File(fileLocation);
@@ -45,6 +65,12 @@ public class GameDatabase {
         }
     }
 
+    /**
+     * Parses one <game> XML node into a Game object — returns null if the entry is malformed.
+     * @param gameNode  the XML node to parse
+     * @param entryNum  position in file, used for warning messages
+     * @return a Game object, or null if parsing failed
+     */
     private Game parseGameNode(Node gameNode, int entryNum) {
         try {
             NamedNodeMap attributes = gameNode.getAttributes();
@@ -79,6 +105,12 @@ public class GameDatabase {
         }
     }
 
+    /**
+     * Reads a value attribute from a named child node — e.g. <title value="..."/>
+     * @param parent    the parent XML node
+     * @param fieldName the tag name to look for
+     * @return the value string, or null if not found
+     */
     private String parseTextField(Node parent, String fieldName) {
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
@@ -91,6 +123,12 @@ public class GameDatabase {
         return null;
     }
 
+    /**
+     * Same as parseTextField but parses the result as an int — defaults to 0 if missing or invalid.
+     * @param parent    the parent XML node
+     * @param fieldName the tag name to look for
+     * @return parsed int, or 0 on failure
+     */
     private int parseIntField(Node parent, String fieldName) {
         String raw = parseTextField(parent, fieldName);
         if (raw == null) {
@@ -105,6 +143,12 @@ public class GameDatabase {
         }
     }
 
+    /**
+     * Same as parseTextField but parses the result as a double — defaults to 0.0 if missing or invalid.
+     * @param parent    the parent XML node
+     * @param fieldName the tag name to look for
+     * @return parsed double, or 0.0 on failure
+     */
     private double parseDoubleField(Node parent, String fieldName) {
         String raw = parseTextField(parent, fieldName);
         if (raw == null) {
@@ -119,6 +163,11 @@ public class GameDatabase {
         }
     }
 
+    /**
+     * Finds a game by its unique ID.
+     * @param gameID the ID to search for
+     * @return matching game, or null if not found
+     */
     public Game getGameByID(String gameID) {
         if (gameID == null || gameID.isBlank()) return null;
         for (Game game : games) {
@@ -127,8 +176,14 @@ public class GameDatabase {
         return null;
     }
 
+    /** @return defensive copy of all loaded games */
     public List<Game> getAll() { return new ArrayList<>(games); }
 
+    /**
+     * Returns all games whose title/genre match the criteria string.
+     * @param criteria the search text
+     * @return matching games, or empty list if criteria is blank
+     */
     public List<Game> searchGames(String criteria) {
         List<Game> results = new ArrayList<>();
         if (criteria == null || criteria.isBlank()) return results;
@@ -138,6 +193,13 @@ public class GameDatabase {
         return results;
     }
 
+    /**
+     * Filters games by genre, player count, and min rating — pass null/0/-1 to skip a filter.
+     * @param genre       genre to match, or null to skip
+     * @param playerCount required player count, or 0 to skip
+     * @param minRating   minimum rating 0-10, or -1 to skip
+     * @return games passing all active filters
+     */
     public List<Game> filterGames(String genre, int playerCount, double minRating) {
         List<Game> results = new ArrayList<>();
         boolean filterGenre  = (genre != null && !genre.isBlank());
@@ -154,6 +216,7 @@ public class GameDatabase {
         return results;
     }
 
+    /** e.g. "GameDatabase | File: games.xml | Games loaded: 42" */
     @Override
     public String toString() {
         return "GameDatabase | File: " + fileLocation
