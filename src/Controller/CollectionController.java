@@ -3,18 +3,29 @@ package Controller;
 import Model.Collection;
 import Model.Game;
 import Model.User;
-import Model.UserDatabase;
 
 public class CollectionController {
 
-    private UserDatabase userDatabase;
-
-    public CollectionController(UserDatabase userDatabase) {
-
+    public CollectionController() {
     }
 
-    public Collection createCollection(User currentUser, String name) { return null; }
-    public boolean deleteCollection(User currentUser, String collectionName) { return false; }
-    public void addGameToCollection(User currentUser, Game game, String collectionName) { }
-    public void removeGameFromCollection(User currentUser, Game game, String collectionName) { }
+    public boolean createCollection(User user, String name) {
+        return false;
+    }
+
+    public boolean deleteCollection(User user, String name) {
+        return false;
+    }
+
+    public boolean addGameToCollection(User user, String collectionName, Game game) {
+        return false;
+    }
+
+    public boolean removeGameFromCollection(User user, String collectionName, Game game) {
+        return false;
+    }
+
+    public String toString() {
+        return "CollectionController";
+    }
 }
