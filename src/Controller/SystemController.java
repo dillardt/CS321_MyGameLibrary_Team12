@@ -1,23 +1,100 @@
 package Controller;
 
-import Model.ConfigurationManager;
-import Model.GameDatabase;
-import Model.UserDatabase;
+import Model.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SystemController {
 
-    private ConfigurationManager configManager;
-    private GameDatabase gameDatabase;
-    private UserDatabase userDatabase;
+    private final String configFilePath;
+    private ConfigurationManager config;
+    private GameDatabase gameDB;
+    private UserDatabase userDB;
+    private User currentUser;
 
-    public SystemController(String configPath) {
-
+    public SystemController(String configFilePath) {
+        this.configFilePath = configFilePath;
+        this.config = null;
+        this.gameDB = null;
+        this.userDB = null;
+        this.currentUser = null;
     }
 
-    public void initializeSystem() { }
-    public void shutdownSystem() { }
-    public void saveAllData() { }
+    public boolean initialize() {
+        return false;
+    }
 
-    public GameDatabase getGameDatabase() { return null; }
-    public UserDatabase getUserDatabase() { return null; }
+    public void shutdown() {
+    }
+
+    public boolean login(String username, String passwordHash) {
+        return false;
+    }
+
+    public void logout() {
+    }
+
+    public boolean register(String username, String passwordHash) {
+        return false;
+    }
+
+    public boolean isLoggedIn() {
+        return currentUser != null;
+    }
+
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    public List<Game> searchGames(String criteria) {
+        return new ArrayList<>();
+    }
+
+    public List<Game> filterGames(String genre, Integer playerCount, Double minRating) {
+        return new ArrayList<>();
+    }
+
+    public Game getGameByID(String id) {
+        return null;
+    }
+
+    public List<Game> getAllGames() {
+        return new ArrayList<>();
+    }
+
+    public boolean viewGame(Game game) {
+        return false;
+    }
+
+    public boolean createCollection(String name) {
+        return false;
+    }
+
+    public boolean deleteCollection(String name) {
+        return false;
+    }
+
+    public boolean addGameToCollection(String collectionName, Game game) {
+        return false;
+    }
+
+    public boolean removeGameFromCollection(String collectionName, Game game) {
+        return false;
+    }
+
+    public boolean addReview(Game game, int rating, String comment) {
+        return false;
+    }
+
+    public boolean editReview(Game game, String newComment, int newRating) {
+        return false;
+    }
+
+    public boolean deleteReview(Game game) {
+        return false;
+    }
+
+    public String toString() {
+        return "SystemController";
+    }
 }
