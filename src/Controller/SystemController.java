@@ -1,100 +1,71 @@
 package Controller;
 
-import Model.*;
-import java.util.ArrayList;
-import java.util.List;
+import Model.ConfigurationManager;
+import Model.GameDatabase;
+import Model.UserDatabase;
 
+/**
+ * Controls system-level operations such as initialization,
+ * shutdown, and data persistence.
+ */
 public class SystemController {
 
-    private final String configFilePath;
-    private ConfigurationManager config;
-    private GameDatabase gameDB;
-    private UserDatabase userDB;
-    private User currentUser;
+    private ConfigurationManager configManager;
+    private GameDatabase gameDatabase;
+    private UserDatabase userDatabase;
 
-    public SystemController(String configFilePath) {
-        this.configFilePath = configFilePath;
-        this.config = null;
-        this.gameDB = null;
-        this.userDB = null;
-        this.currentUser = null;
+    /**
+     * Constructs the SystemController using a configuration file path.
+     *
+     * @param configPath the path to the configuration file
+     */
+    public SystemController(String configPath) {
+        configManager = new ConfigurationManager(configPath);
+        gameDatabase = new GameDatabase();
+        userDatabase = new UserDatabase();
     }
 
-    public boolean initialize() {
-        return false;
+    /**
+     * Initializes the system by loading configuration and databases.
+     */
+    public void initializeSystem() {
+        configManager.loadConfiguration();
+
+        gameDatabase.loadGames(configManager.getGameDBPath());
+        userDatabase.loadUsers(configManager.getUserDBPath());
     }
 
-    public void shutdown() {
+    /**
+     * Handles system shutdown and ensures all data is saved.
+     */
+    public void shutdownSystem() {
+        saveAllData();
     }
 
-    public boolean login(String username, String passwordHash) {
-        return false;
+    /**
+     * Saves all system data including games, users, and configuration.
+     */
+    public void saveAllData() {
+        gameDatabase.saveGames();
+        userDatabase.saveUsers();
+        configManager.saveConfiguration();
     }
 
-    public void logout() {
+    /**
+     * Provides access to the GameDatabase.
+     *
+     * @return the game database
+     */
+    public GameDatabase getGameDatabase() {
+        return gameDatabase;
     }
 
-    public boolean register(String username, String passwordHash) {
-        return false;
-    }
-
-    public boolean isLoggedIn() {
-        return currentUser != null;
-    }
-
-    public User getCurrentUser() {
-        return currentUser;
-    }
-
-    public List<Game> searchGames(String criteria) {
-        return new ArrayList<>();
-    }
-
-    public List<Game> filterGames(String genre, Integer playerCount, Double minRating) {
-        return new ArrayList<>();
-    }
-
-    public Game getGameByID(String id) {
-        return null;
-    }
-
-    public List<Game> getAllGames() {
-        return new ArrayList<>();
-    }
-
-    public boolean viewGame(Game game) {
-        return false;
-    }
-
-    public boolean createCollection(String name) {
-        return false;
-    }
-
-    public boolean deleteCollection(String name) {
-        return false;
-    }
-
-    public boolean addGameToCollection(String collectionName, Game game) {
-        return false;
-    }
-
-    public boolean removeGameFromCollection(String collectionName, Game game) {
-        return false;
-    }
-
-    public boolean addReview(Game game, int rating, String comment) {
-        return false;
-    }
-
-    public boolean editReview(Game game, String newComment, int newRating) {
-        return false;
-    }
-
-    public boolean deleteReview(Game game) {
-        return false;
-    }
-
-    public String toString() {
-        return "SystemController";
+    /**
+     * Provides access to the UserDatabase.
+     *
+     * @return the user database
+     */
+    public UserDatabase getUserDatabase() {
+        return userDatabase;
     }
 }
