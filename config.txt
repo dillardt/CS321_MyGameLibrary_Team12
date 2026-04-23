@@ -1,0 +1,2 @@
+gameDB=data/games.xml
+userDB=data/users.csv

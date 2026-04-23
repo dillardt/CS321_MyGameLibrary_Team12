@@ -4,6 +4,8 @@ import Model.Game;
 import Model.GameDatabase;
 import Model.Review;
 import Model.User;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,18 +33,6 @@ public class GameController {
      */
     public List<Game> search(String criteria) {
         return gameDatabase.searchGames(criteria);
-    }
-
-    /**
-     * Filters games based on genre, player count, and minimum rating.
-     *
-     * @param genre the genre to filter by
-     * @param players the number of players
-     * @param minRating the minimum rating
-     * @return a list of filtered games
-     */
-    public List<Game> filter(String genre, int players, double minRating) {
-        return gameDatabase.filterGames(genre, players, minRating);
     }
 
     /**
@@ -74,7 +64,7 @@ public class GameController {
      */
     public Review annotateGame(Game game, User currentUser, int rating, String comment) {
         Review review = new Review(rating, comment, currentUser, game);
-        currentUser.addReview(game, review);
+        currentUser.addReview(review);
         return review;
     }
 }

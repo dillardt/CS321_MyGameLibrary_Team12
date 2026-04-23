@@ -3,153 +3,124 @@ package Model;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A registered user — owns their collections, reviews, and recently viewed list. */
+/**
+ * Represents a registered system user.
+ * Holds credentials, collections, reviews, and recently viewed games.
+ * All user data persists across sessions.
+ */
 public class User {
 
-    private static final int MAX_RECENTLY_VIEWED = 10;
-
-    private final String username;
-    private final String passwordHash;
+    private String username;
+    private String password;
     private List<Collection> collections;
     private List<Review> reviews;
     private List<Game> recentlyViewed;
 
     /**
-     * Creates a user with empty lists — username and password never change after this.
-     * @param username     unique identifier
-     * @param passwordHash hashed password for authentication
+     * Constructs a User with the given username and password.
+     *
+     * @param username the user's login name
+     * @param password the user's password
      */
-    public User(String username, String passwordHash) {
+    public User(String username, String password) {
         this.username     = username;
-        this.passwordHash = passwordHash;
-        this.collections    = new ArrayList<>();
-        this.reviews        = new ArrayList<>();
+        this.password = password;
+        this.collections  = new ArrayList<>();
+        this.reviews      = new ArrayList<>();
         this.recentlyViewed = new ArrayList<>();
     }
 
+    /**
+     * Creates a new named collection for this user.
+     *
+     * @param name the collection name
+     * @return the newly created Collection
+     */
+    public Collection createCollection(String name) {
+        Collection c = new Collection(name);
+        collections.add(c);
+        return c;
+    }
+
+    /**
+     * Deletes a collection by name.
+     *
+     * @param name the name of the collection to remove
+     */
+    public void deleteCollection(String name) {
+        collections.removeIf(c -> c.getName().equals(name));
+    }
+
+    /**
+     * Adds a game to the named collection.
+     *
+     * @param game           the game to add
+     * @param collectionName the target collection name
+     */
+    public void addGameToCollection(Game game, String collectionName) {
+        for (Collection c : collections) {
+            if (c.getName().equals(collectionName)) {
+                c.addGame(game);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Removes a game from the named collection.
+     *
+     * @param game           the game to remove
+     * @param collectionName the target collection name
+     */
+    public void removeGameFromCollection(Game game, String collectionName) {
+        for (Collection c : collections) {
+            if (c.getName().equals(collectionName)) {
+                c.removeGame(game);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Adds a review written by this user.
+     *
+     * @param review the review object
+     */
+    public void addReview(Review review) {
+        reviews.add(review);
+    }
+
+    /**
+     * Authenticates a password attempt against the stored password.
+     *
+     * @param password the password to check
+     * @return true if the password matches
+     */
+    public boolean authenticate(String password) {
+        return this.password.equals(password);
+    }
+
+    /**
+     * Clears any session-specific state on logout.
+     */
+    public void logout() {
+        // Session cleanup can be added here if needed
+    }
+
+    // --- Getters ---
+
     /** @return the username */
-    public String getUsername() { return username; }
+    public String getUsername()              { return username; }
 
     /** @return the stored password hash */
-    public String getPasswordHash() { return passwordHash; }
+    public String getPassword()          { return password; }
 
-    /**
-     * Checks if the given hash matches the stored one.
-     * @param inputHash hash to verify
-     * @return true if it matches, false if null or wrong
-     */
-    public boolean authenticate(String inputHash) {
-        if (inputHash == null) return false;
-        return passwordHash.equals(inputHash);
-    }
+    /** @return the user's collections */
+    public List<Collection> getCollections() { return collections; }
 
-    /** @return defensive copy of the collections list */
-    public List<Collection> getCollections() { return new ArrayList<>(collections); }
+    /** @return the user's reviews */
+    public List<Review> getReviews()         { return reviews; }
 
-    /**
-     * Finds a collection by name, case-insensitive.
-     * @param name collection name to search for
-     * @return matching collection, or null if not found
-     */
-    public Collection getCollectionByName(String name) {
-        if (name == null || name.isBlank()) return null;
-        for (Collection c : collections) {
-            if (c.getName().equalsIgnoreCase(name)) return c;
-        }
-        return null;
-    }
-
-    /**
-     * Adds a collection — rejects null or duplicate names.
-     * @param collection the collection to add
-     * @return true if added, false if null or duplicate
-     */
-    public boolean addCollection(Collection collection) {
-        if (collection == null) return false;
-        if (getCollectionByName(collection.getName()) != null) return false;
-        collections.add(collection);
-        return true;
-    }
-
-    /**
-     * Removes a collection by name, case-insensitive.
-     * @param name name of the collection to remove
-     * @return true if removed, false if not found or blank
-     */
-    public boolean removeCollection(String name) {
-        if (name == null || name.isBlank()) return false;
-        for (int i = 0; i < collections.size(); i++) {
-            if (collections.get(i).getName().equalsIgnoreCase(name)) {
-                collections.remove(i);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** @return defensive copy of the reviews list */
-    public List<Review> getReviews() { return new ArrayList<>(reviews); }
-
-    /**
-     * Finds the review this user wrote for a specific game.
-     * @param game the game to look up
-     * @return matching review, or null if none exists
-     */
-    public Review getReviewByGame(Game game) {
-        if (game == null) return null;
-        for (Review r : reviews) {
-            if (r.getGame() != null
-                    && r.getGame().getGameID() != null
-                    && r.getGame().getGameID().equals(game.getGameID())) {
-                return r;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Adds a review — rejects null and duplicate reviews for the same game.
-     * @param review the review to add
-     * @return true if added, false if null or game already reviewed
-     */
-    public boolean addReview(Review review) {
-        if (review == null) return false;
-        if (getReviewByGame(review.getGame()) != null) return false;
-        reviews.add(review);
-        return true;
-    }
-
-    /**
-     * Removes a review — rejects null, uses reference equality.
-     * @param review the review to remove
-     * @return true if removed, false if null or not found
-     */
-    public boolean removeReview(Review review) {
-        if (review == null) return false;
-        return reviews.remove(review);
-    }
-
-    /** @return defensive copy of recently viewed, most recent first */
-    public List<Game> getRecentlyViewed() { return new ArrayList<>(recentlyViewed); }
-
-    /**
-     * Adds a game to the front of recently viewed, capped at 10 — moves it if already present.
-     * @param game the game to mark as recently viewed
-     */
-    public void addRecentlyViewed(Game game) {
-        if (game == null) return;
-        recentlyViewed.remove(game);
-        recentlyViewed.add(0, game);
-        if (recentlyViewed.size() > MAX_RECENTLY_VIEWED) {
-            recentlyViewed.remove(recentlyViewed.size() - 1);
-        }
-    }
-
-    /** e.g. "alice | Collections: 3 | Reviews: 5" */
-    @Override
-    public String toString() {
-        return username
-                + " | Collections: " + collections.size()
-                + " | Reviews: "     + reviews.size();
-    }
+    /** @return the user's recently viewed games */
+    public List<Game> getRecentlyViewed()    { return recentlyViewed; }
 }

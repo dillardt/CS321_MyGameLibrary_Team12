@@ -1,133 +1,73 @@
 package Model;
 
 import java.io.*;
+import java.util.Properties;
 
 /**
- * Holds file paths for the system config.
- * Reads and writes a simple key=value file.
+ * Handles loading and saving system startup configuration.
+ * Stores file paths for the game and user databases.
  */
 public class ConfigurationManager {
 
-    private static final String KEY_GAME_DB = "gameDBPath";
-    private static final String KEY_USER_DB = "userDBPath";
-
-    private final String configFilePath;
+    private String configFilePath;
     private String gameDBPath;
     private String userDBPath;
 
     /**
-     * Create config manager with file path.
-     * @param configFilePath path to config file
+     * Constructs a ConfigurationManager with the given config file path.
+     *
+     * @param configFilePath path to the configuration file
      */
     public ConfigurationManager(String configFilePath) {
         this.configFilePath = configFilePath;
-        this.gameDBPath = null;
-        this.userDBPath = null;
+        this.gameDBPath     = "";
+        this.userDBPath     = "";
     }
 
     /**
-     * Read config file and set paths.
+     * Loads configuration from the config file.
+     * Falls back to default paths if the file is missing or a key is absent.
      */
     public void loadConfiguration() {
+        Properties props = new Properties();
 
-        gameDBPath = null;
-        userDBPath = null;
-
-        File file = new File(configFilePath);
-
-        if (!file.exists()) {
-            System.out.println("WARNING: Config file not found: " + configFilePath);
-            return;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-
-            String line;
-            int lineNumber = 0;
-
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-
-                if (line.isBlank()) continue;
-                if (line.trim().startsWith("#")) continue;
-
-                if (!line.contains("=")) {
-                    System.out.println("WARNING: Bad line " + lineNumber);
-                    continue;
-                }
-
-                int index = line.indexOf("=");
-                String key = line.substring(0, index).trim();
-                String value = line.substring(index + 1).trim();
-
-                if (key.isBlank()) continue;
-
-                if (key.equals(KEY_GAME_DB)) {
-                    gameDBPath = value.isEmpty() ? null : value;
-                } else if (key.equals(KEY_USER_DB)) {
-                    userDBPath = value.isEmpty() ? null : value;
-                }
-            }
-
+        try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath))) {
+            props.load(reader);
+            gameDBPath = props.getProperty("gameDB", "data/games.xml");
+            userDBPath = props.getProperty("userDB", "data/users.csv");
         } catch (IOException e) {
-            System.out.println("ERROR: " + e.getMessage());
+            System.err.println("Config file not found, using defaults: " + e.getMessage());
+            gameDBPath = "data/games.xml";
+            userDBPath = "data/users.csv";
         }
     }
 
     /**
-     * Write current paths to config file.
+     * Saves current configuration back to the config file.
      */
     public void saveConfiguration() {
+        Properties props = new Properties();
+        props.setProperty("gameDB", gameDBPath);
+        props.setProperty("userDB", userDBPath);
 
-        try (BufferedWriter writer = new BufferedWriter(
-                new FileWriter(configFilePath, false))) {
-
-            writer.write("# Config");
-            writer.newLine();
-            writer.newLine();
-
-            if (gameDBPath != null && !gameDBPath.isBlank()) {
-                writer.write(KEY_GAME_DB + "=" + gameDBPath);
-                writer.newLine();
-            }
-
-            if (userDBPath != null && !userDBPath.isBlank()) {
-                writer.write(KEY_USER_DB + "=" + userDBPath);
-                writer.newLine();
-            }
-
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(configFilePath))) {
+            props.store(writer, "Board Game Browser Configuration");
         } catch (IOException e) {
-            System.out.println("ERROR: " + e.getMessage());
+            System.err.println("Failed to save configuration: " + e.getMessage());
         }
     }
 
-    /** @return game database path */
-    public String getGameDBPath() {
-        return gameDBPath;
-    }
+    /**
+     * Returns the path to the game database file.
+     *
+     * @return game database file path
+     */
+    public String getGameDBPath() { return gameDBPath; }
 
-    /** @return user database path */
-    public String getUserDBPath() {
-        return userDBPath;
-    }
-
-    /** @return config file path */
-    public String getConfigFilePath() {
-        return configFilePath;
-    }
-
-    /** @return true if both paths are set */
-    public boolean isValid() {
-        return gameDBPath != null && !gameDBPath.isBlank()
-                && userDBPath != null && !userDBPath.isBlank();
-    }
-
-    /** @return debug string */
-    @Override
-    public String toString() {
-        return "ConfigurationManager | Config: " + configFilePath
-                + " | GameDB: " + gameDBPath
-                + " | UserDB: " + userDBPath
-                + " | Valid: " + isValid();
-    }
+    /**
+     * Returns the path to the user database file.
+     *
+     * @return user database file path
+     */
+    public String getUserDBPath() { return userDBPath; }
 }
