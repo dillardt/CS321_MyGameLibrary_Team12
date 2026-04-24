@@ -13,102 +13,81 @@ import java.awt.Insets;
 import java.awt.event.ActionListener;
 
 /**
- * Login screen component containing username/password inputs and auth actions.
+ * Login screen. Contains username/password inputs and three action buttons.
+ * All layout matches the original; status label provides user feedback.
  */
 public class LoginView extends JPanel {
 
-    private final JTextField usernameField;
+    private final JTextField     usernameField;
     private final JPasswordField passwordField;
-    private final JButton loginButton;
-    private final JButton createAccountButton;
-    private final JButton guestLoginButton;
-    private final JLabel statusLabel;
+    private final JButton        loginButton;
+    private final JButton        createAccountButton;
+    private final JButton        guestLoginButton;
+    private final JLabel         statusLabel;
 
-    /**
-     * Constructs and lays out the login view.
-     */
     public LoginView() {
         setLayout(new GridBagLayout());
-
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
 
+        // Title
         JLabel titleLabel = new JLabel("My Game Library", SwingConstants.CENTER);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         add(titleLabel, gbc);
 
+        // Username row
         gbc.gridwidth = 1;
-        gbc.gridy = 1;
-        gbc.gridx = 0;
+        gbc.gridy = 1; gbc.gridx = 0;
         add(new JLabel("Username:"), gbc);
-
         usernameField = new JTextField(18);
         gbc.gridx = 1;
         add(usernameField, gbc);
 
-        gbc.gridy = 2;
-        gbc.gridx = 0;
+        // Password row
+        gbc.gridy = 2; gbc.gridx = 0;
         add(new JLabel("Password:"), gbc);
-
         passwordField = new JPasswordField(18);
         gbc.gridx = 1;
         add(passwordField, gbc);
 
+        // Login + Create Account buttons
         loginButton = new JButton("Login");
-        gbc.gridy = 3;
-        gbc.gridx = 0;
+        gbc.gridy = 3; gbc.gridx = 0;
         add(loginButton, gbc);
-
         createAccountButton = new JButton("Create Account");
         gbc.gridx = 1;
         add(createAccountButton, gbc);
 
+        // Guest button
         guestLoginButton = new JButton("Continue as Guest");
-        gbc.gridy = 4;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
+        gbc.gridy = 4; gbc.gridx = 0; gbc.gridwidth = 2;
         add(guestLoginButton, gbc);
 
-        statusLabel = new JLabel(" ");
-        statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Status message label
+        statusLabel = new JLabel(" ", SwingConstants.CENTER);
         gbc.gridy = 5;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
         add(statusLabel, gbc);
     }
 
-    /**
-     * Returns the username entered by the user.
-     *
-     * @return trimmed username text
-     */
+    // ── Getters ───────────────────────────────────────────────────────────────
+
+    /** Returns the trimmed username text. */
     public String getUsernameInput() {
         return usernameField.getText().trim();
     }
 
-    /**
-     * Returns the password entered by the user.
-     *
-     * @return password text
-     */
+    /** Returns the entered password. */
     public String getPasswordInput() {
         return new String(passwordField.getPassword());
     }
 
-    /**
-     * Clears only the password field.
-     */
+    /** Clears only the password field. */
     public void clearPassword() {
         passwordField.setText("");
     }
 
-    /**
-     * Clears username, password, and status message.
-     */
+    /** Clears both fields and the status label. */
     public void clearAllInputs() {
         usernameField.setText("");
         passwordField.setText("");
@@ -116,40 +95,19 @@ public class LoginView extends JPanel {
     }
 
     /**
-     * Sets a status message with color based on error state.
+     * Displays a status message.
      *
-     * @param message status text to display
-     * @param isError true to use error color, false for success color
+     * @param message the text to show
+     * @param isError true = red, false = green
      */
     public void setStatusMessage(String message, boolean isError) {
         statusLabel.setText(message == null || message.isBlank() ? " " : message);
         statusLabel.setForeground(isError ? Color.RED : new Color(0, 128, 0));
     }
 
-    /**
-     * Registers the login button listener.
-     *
-     * @param listener action listener for login
-     */
-    public void addLoginListener(ActionListener listener) {
-        loginButton.addActionListener(listener);
-    }
+    // ── Listener registration ─────────────────────────────────────────────────
 
-    /**
-     * Registers the create-account button listener.
-     *
-     * @param listener action listener for account creation
-     */
-    public void addCreateAccountListener(ActionListener listener) {
-        createAccountButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers the guest-login button listener.
-     *
-     * @param listener action listener for guest login
-     */
-    public void addGuestLoginListener(ActionListener listener) {
-        guestLoginButton.addActionListener(listener);
-    }
+    public void addLoginListener(ActionListener l)         { loginButton.addActionListener(l); }
+    public void addCreateAccountListener(ActionListener l) { createAccountButton.addActionListener(l); }
+    public void addGuestLoginListener(ActionListener l)    { guestLoginButton.addActionListener(l); }
 }

@@ -17,41 +17,56 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
- * Home and search-results view with searching, filtering, collections access,
- * recently viewed games, and logout support.
+ * Main game browser screen.
+ *
+ * Layout:
+ *  NORTH  — top bar: collections dropdown + create/delete + logout
+ *  CENTER — search/filter bar above; game results list left; recently viewed right
+ *  SOUTH  — View Details, Add, Delete, Manage Collections buttons
+ *
+ * All the original methods are kept. New methods added:
+ *  - addRecentlyViewedClickListener  (double-click recently viewed → open detail)
+ *  - addManageCollectionsListener    (open the CollectionListView)
+ *  - clearNewCollectionField         (reset after create)
  */
 public class GameListView extends JPanel {
 
-    private final JTextField searchField;
+    // ── Models ────────────────────────────────────────────────────────────────
+    private final DefaultListModel<Game>      gameListModel       = new DefaultListModel<>();
+    private final DefaultListModel<Game>      recentlyViewedModel = new DefaultListModel<>();
+
+    // ── Lists ─────────────────────────────────────────────────────────────────
+    private final JList<Game> gameList;
+    private final JList<Game> recentlyViewedList;
+
+    // ── Search / filter controls ──────────────────────────────────────────────
+    private final JTextField        searchField;
     private final JComboBox<String> genreFilterCombo;
     private final JComboBox<String> playersFilterCombo;
     private final JComboBox<String> minRatingFilterCombo;
+    private final JButton           searchButton;
+    private final JButton           filterButton;
+    private final JButton           addGameButton;
+    private final JButton           deleteGameButton;
+    private final JButton           viewDetailsButton;
+    private final JButton           manageCollectionsButton;
+
+    // ── Collection controls ───────────────────────────────────────────────────
     private final JComboBox<String> collectionsCombo;
-    private final JButton searchButton;
-    private final JButton filterButton;
-    private final JButton deleteGameButton;
-    private final JButton viewDetailsButton;
-    private final JButton logoutButton;
-    private final JButton addGameButton;
-    private final DefaultListModel<Game> gameListModel;
-    private final JList<Game> gameList;
-    private final DefaultListModel<Game> recentlyViewedModel;
-    private final JList<Game> recentlyViewedList;
-    private final JTextField newCollectionField;
-    private final JButton createCollectionButton;
-    private final JButton deleteCollectionButton;
+    private final JTextField        newCollectionField;
+    private final JButton           createCollectionButton;
+    private final JButton           deleteCollectionButton;
+    private final JButton           logoutButton;
 
-
-
-    /**
-     * Constructs and lays out the game list view.
-     */
     public GameListView() {
         setLayout(new BorderLayout(8, 8));
 
+        // ── Top bar: collections + create/delete + logout ─────────────────────
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
@@ -59,41 +74,55 @@ public class GameListView extends JPanel {
 
         homePanel.add(new JLabel("Collections:"));
         collectionsCombo = new JComboBox<>();
-        collectionsCombo.setPrototypeDisplayValue("Select Collection           ");
+        collectionsCombo.setPrototypeDisplayValue("Select Collection          ");
         homePanel.add(collectionsCombo);
-        deleteCollectionButton = new JButton("Delete");
+
+        deleteCollectionButton = new JButton("Delete Collection");
         homePanel.add(deleteCollectionButton);
 
-
-
-// NEW: create collection UI
+        homePanel.add(new JLabel("  New:"));
         newCollectionField = new JTextField(10);
-        createCollectionButton = new JButton("Create");
-        homePanel.add(new JLabel("New:"));
         homePanel.add(newCollectionField);
+
+        createCollectionButton = new JButton("Create");
         homePanel.add(createCollectionButton);
+
+        manageCollectionsButton = new JButton("Manage Collections");
+        homePanel.add(manageCollectionsButton);
 
         logoutButton = new JButton("Logout");
         homePanel.add(logoutButton);
 
         topPanel.add(homePanel);
 
-
+        // ── Search / filter bar ───────────────────────────────────────────────
         JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
         controlsPanel.add(new JLabel("Search:"));
         searchField = new JTextField(14);
         controlsPanel.add(searchField);
 
         controlsPanel.add(new JLabel("Genre:"));
-        genreFilterCombo = new JComboBox<>(new String[]{"All", "Strategy", "Family", "Party", "Co-op", "Card", "Euro", "Abstract"});
+        genreFilterCombo = new JComboBox<>(new String[]{
+                "All",
+                "Abstract Strategy", "Adventure", "Animals", "Bluffing",
+                "Card Game", "Children's Game", "City Building", "Civilization",
+                "Deduction", "Dice", "Economic", "Exploration",
+                "Fantasy", "Farming", "Fighting", "Horror", "Humor",
+                "Industry / Manufacturing", "Medieval", "Miniatures",
+                "Mythology", "Negotiation", "Party Game", "Political",
+                "Puzzle", "Racing", "Science Fiction", "Space Exploration",
+                "Sports", "Territory Building", "Transportation",
+                "Trivia", "Wargame", "Word Game", "World War II"
+        });
         controlsPanel.add(genreFilterCombo);
 
         controlsPanel.add(new JLabel("Players:"));
-        playersFilterCombo = new JComboBox<>(new String[]{"Any", "1", "2", "3", "4", "5", "6+"});
+        playersFilterCombo = new JComboBox<>(new String[]{"Any","1","2","3","4","5","6+"});
         controlsPanel.add(playersFilterCombo);
 
         controlsPanel.add(new JLabel("Min Rating:"));
-        minRatingFilterCombo = new JComboBox<>(new String[]{"Any", "5.0", "6.0", "7.0", "8.0", "9.0"});
+        minRatingFilterCombo = new JComboBox<>(new String[]{"Any","5.0","6.0","7.0","8.0","9.0"});
         controlsPanel.add(minRatingFilterCombo);
 
         searchButton = new JButton("Search");
@@ -104,19 +133,13 @@ public class GameListView extends JPanel {
         topPanel.add(controlsPanel);
         add(topPanel, BorderLayout.NORTH);
 
-        gameListModel = new DefaultListModel<>();
+        // ── Center: search results (left) + recently viewed (right) ───────────
         gameList = new JList<>(gameListModel);
         gameList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JPanel resultsPanel = new JPanel(new BorderLayout());
         resultsPanel.setBorder(BorderFactory.createTitledBorder("Search Results"));
         resultsPanel.add(new JScrollPane(gameList), BorderLayout.CENTER);
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        viewDetailsButton = new JButton("View Details");
-        bottomPanel.add(viewDetailsButton);
-        resultsPanel.add(bottomPanel, BorderLayout.SOUTH);
-
-        recentlyViewedModel = new DefaultListModel<>();
         recentlyViewedList = new JList<>(recentlyViewedModel);
         recentlyViewedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JPanel recentPanel = new JPanel(new BorderLayout());
@@ -128,254 +151,120 @@ public class GameListView extends JPanel {
         centerPanel.add(recentPanel);
         add(centerPanel, BorderLayout.CENTER);
 
-        addGameButton = new JButton("Add Game");
-        controlsPanel.add(addGameButton);
-
-        deleteGameButton = new JButton("Delete Game");
-        controlsPanel.add(deleteGameButton);
+        // ── Bottom bar: action buttons ────────────────────────────────────────
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        viewDetailsButton   = new JButton("View Details");
+        addGameButton       = new JButton("Add Game");
+        deleteGameButton    = new JButton("Delete Game");
+        bottomPanel.add(viewDetailsButton);
+        bottomPanel.add(addGameButton);
+        bottomPanel.add(deleteGameButton);
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    /**
-     * Replaces the visible list of games.
-     *
-     * @param games list of games to display
-     */
+    // ── Data setters ──────────────────────────────────────────────────────────
+
+    /** Replaces the search results list. */
     public void setGames(List<Game> games) {
         gameListModel.clear();
-        if (games == null) {
-            return;
-        }
-        for (Game game : games) {
-            gameListModel.addElement(game);
-        }
+        if (games == null) return;
+        for (Game g : games) gameListModel.addElement(g);
     }
 
-
-    /**
-     * Returns index of selected game in list.
-     *
-     * @return selected index, or -1 if nothing selected
-     */
-    public int getSelectedGameIndex() {
-        return gameList.getSelectedIndex();
+    /** Replaces the recently-viewed list. */
+    public void setRecentlyViewedGames(List<Game> games) {
+        recentlyViewedModel.clear();
+        if (games == null) return;
+        for (Game g : games) recentlyViewedModel.addElement(g);
     }
 
-    /**
-     * Returns the entered search criteria.
-     *
-     * @return trimmed search text
-     */
-    public String getSearchCriteria() {
-        return searchField.getText().trim();
-    }
-
-    /**
-     * Returns the entered genre filter.
-     *
-     * @return trimmed genre text
-     */
-    public String getGenreFilter() {
-        Object selected = genreFilterCombo.getSelectedItem();
-        if (selected == null || "All".equals(selected)) {
-            return "";
-        }
-        return selected.toString();
-    }
-
-    /**
-     * Returns the entered player count filter.
-     *
-     * @return parsed player count, or 0 if input is blank/invalid
-     */
-    public int getPlayersFilter() {
-        Object selected = playersFilterCombo.getSelectedItem();
-        if (selected == null || "Any".equals(selected)) {
-            return 0;
-        }
-        String value = selected.toString();
-        if ("6+".equals(value)) {
-            return 6;
-        }
-        return parseIntOrDefault(value, 0);
-    }
-
-    /**
-     * Returns the entered minimum rating filter.
-     *
-     * @return parsed rating, or -1 if input is blank/invalid
-     */
-    public double getMinRatingFilter() {
-        Object selected = minRatingFilterCombo.getSelectedItem();
-        if (selected == null || "Any".equals(selected)) {
-            return -1.0;
-        }
-        return parseDoubleOrDefault(selected.toString(), -1.0);
-    }
-
-    public Game getSelectedGame() {
-        return gameList.getSelectedValue();
-    }
-
-
-    /**
-     * Updates available collection names in the home-page collection dropdown.
-     *
-     * @param collectionNames collection names to show
-     */
-    public void setCollectionNames(List<String> collectionNames) {
+    /** Refreshes the collection names in the dropdown. */
+    public void setCollectionNames(List<String> names) {
         DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
-        if (collectionNames != null) {
-            for (String name : collectionNames) {
-                model.addElement(name);
-            }
-        }
+        if (names != null) for (String n : names) model.addElement(n);
         collectionsCombo.setModel(model);
     }
 
-    /**
-     * Returns the currently selected collection name.
-     *
-     * @return selected collection name, or null
-     */
+    /** Clears the new-collection text field after a successful create. */
+    public void clearNewCollectionField() {
+        newCollectionField.setText("");
+    }
+
+    // ── Getters ───────────────────────────────────────────────────────────────
+
+    public int    getSelectedGameIndex()          { return gameList.getSelectedIndex(); }
+    public Game   getSelectedGame()               { return gameList.getSelectedValue(); }
+    public Game   getSelectedRecentlyViewedGame() { return recentlyViewedList.getSelectedValue(); }
+    public String getSearchCriteria()             { return searchField.getText().trim(); }
     public String getSelectedCollectionName() {
-        Object selected = collectionsCombo.getSelectedItem();
-        return selected == null ? null : selected.toString();
+        Object s = collectionsCombo.getSelectedItem();
+        return s == null ? null : s.toString();
     }
 
-    /**
-     * Replaces the recently viewed list.
-     *
-     * @param games recently viewed games in display order
-     */
-    public void setRecentlyViewedGames(List<Game> games) {
-        recentlyViewedModel.clear();
-        if (games == null) {
-            return;
-        }
-        for (Game game : games) {
-            recentlyViewedModel.addElement(game);
-        }
-    }
-
-    /**
-     * Returns the selected game in the recently viewed list.
-     *
-     * @return selected recently viewed game, or null
-     */
-    public Game getSelectedRecentlyViewedGame() {
-        return recentlyViewedList.getSelectedValue();
-    }
-
-    /**
-     * Registers the search button listener.
-     *
-     * @param listener action listener for search
-     */
-    public void addSearchListener(ActionListener listener) {
-        searchButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers the filter button listener.
-     *
-     * @param listener action listener for filtering
-     */
-    public void addFilterListener(ActionListener listener) {
-        filterButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers the view-details button listener.
-     *
-     * @param listener action listener for viewing game details
-     */
-    public void addViewDetailsListener(ActionListener listener) {
-        viewDetailsButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers collection dropdown selection listener.
-     *
-     * @param listener action listener for collection selection
-     */
-    public void addCollectionSelectionListener(ActionListener listener) {
-        collectionsCombo.addActionListener(listener);
-    }
-
-    /**
-     * Registers listener for Add Game button.
-     */
-    public void addAddGameListener(ActionListener listener) {
-        addGameButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers the logout button listener.
-     *
-     * @param listener action listener for logout
-     */
-    public void addLogoutListener(ActionListener listener) {
-        logoutButton.addActionListener(listener);
-    }
-
-    /**
-     * Safely parses an integer with default fallback.
-     *
-     * @param value raw input value
-     * @param fallback fallback value
-     * @return parsed int or fallback
-     */
-    private int parseIntOrDefault(String value, int fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
-    }
-
-    /**
-     * Safely parses a double with default fallback.
-     *
-     * @param value raw input value
-     * @param fallback fallback value
-     * @return parsed double or fallback
-     */
-    private double parseDoubleOrDefault(String value, double fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Double.parseDouble(value.trim());
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
-    }
-
-    /**
-     * Registers listener for Delete Game button.
-     *
-     * @param listener action listener for deleting a game
-     */
-    public void addDeleteGameListener(ActionListener listener) {
-        deleteGameButton.addActionListener(listener);
-    }
-
-    /** Listener for the Create Collection button */
-    public void addCreateCollectionListener(ActionListener listener) {
-        createCollectionButton.addActionListener(listener);
-    }
-
-    /** Returns the text entered for a new collection */
+    /** Returns the new collection name typed in the inline field. */
     public String getNewCollectionName() {
         return newCollectionField.getText().trim();
     }
 
-    public void addDeleteCollectionListener(ActionListener listener) {
-        deleteCollectionButton.addActionListener(listener);
+    public String getGenreFilter() {
+        Object s = genreFilterCombo.getSelectedItem();
+        return (s == null || "All".equals(s)) ? "" : s.toString();
     }
 
+    public int getPlayersFilter() {
+        Object s = playersFilterCombo.getSelectedItem();
+        if (s == null || "Any".equals(s)) return 0;
+        return "6+".equals(s.toString()) ? 6 : parseIntOrDefault(s.toString(), 0);
+    }
 
+    public double getMinRatingFilter() {
+        Object s = minRatingFilterCombo.getSelectedItem();
+        if (s == null || "Any".equals(s)) return -1.0;
+        return parseDoubleOrDefault(s.toString(), -1.0);
+    }
+
+    // ── Listener registration ─────────────────────────────────────────────────
+
+    public void addSearchListener(ActionListener l)         { searchButton.addActionListener(l); }
+    public void addFilterListener(ActionListener l)         { filterButton.addActionListener(l); }
+    public void addViewDetailsListener(ActionListener l)    { viewDetailsButton.addActionListener(l); }
+    public void addAddGameListener(ActionListener l)        { addGameButton.addActionListener(l); }
+    public void addDeleteGameListener(ActionListener l)     { deleteGameButton.addActionListener(l); }
+    public void addLogoutListener(ActionListener l)         { logoutButton.addActionListener(l); }
+    public void addCreateCollectionListener(ActionListener l) { createCollectionButton.addActionListener(l); }
+    public void addDeleteCollectionListener(ActionListener l) { deleteCollectionButton.addActionListener(l); }
+    public void addManageCollectionsListener(ActionListener l){ manageCollectionsButton.addActionListener(l); }
+
+    /** Fires when the collection combo box selection changes. */
+    public void addCollectionSelectionListener(ActionListener l) {
+        collectionsCombo.addActionListener(l);
+    }
+
+    /**
+     * Double-clicking a game in the recently-viewed list triggers this listener.
+     * The AppCoordinator reads getSelectedRecentlyViewedGame() to get the game.
+     */
+    public void addRecentlyViewedClickListener(ActionListener l) {
+        recentlyViewedList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && recentlyViewedList.getSelectedIndex() >= 0) {
+                    l.actionPerformed(new java.awt.event.ActionEvent(
+                            recentlyViewedList,
+                            java.awt.event.ActionEvent.ACTION_PERFORMED,
+                            "RECENT_DOUBLE_CLICK"));
+                }
+            }
+        });
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private int parseIntOrDefault(String v, int fallback) {
+        try { return Integer.parseInt(v.trim()); } catch (NumberFormatException e) { return fallback; }
+    }
+
+    private double parseDoubleOrDefault(String v, double fallback) {
+        try { return Double.parseDouble(v.trim()); } catch (NumberFormatException e) { return fallback; }
+    }
 }

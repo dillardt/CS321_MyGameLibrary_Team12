@@ -58,6 +58,6 @@ public class Review {
     @Override
     public String toString() {
         return author.getUsername() + " rated " + rating
-                + "/5: " + comment;
+                + "/10: " + comment;
     }
 }

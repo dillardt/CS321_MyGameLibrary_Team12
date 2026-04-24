@@ -2,6 +2,7 @@ package View;
 
 import Model.Game;
 import Model.Review;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -13,38 +14,49 @@ import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import java.awt.BorderLayout;
-import java.awt.Image;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.util.List;
 
 /**
- * Game detail view showing game image/data, public review list,
- * and user review controls.
+ * Game detail screen.
+ *
+ * Layout:
+ *  NORTH  — image + metadata (title, genre, players, rating)
+ *  CENTER — description (left) + community reviews list (right)
+ *  SOUTH  — review form (rating spinner + comment area + submit) + Add to Collection + Back
+ *
+ * Changes from original:
+ *  - addBackListener() added so AppCoordinator can wire the Back button
+ *  - setDisplayedReviews() is now called (not commented out) — reviews show immediately
+ *  - writeReviewButton removed (was wired but did nothing — form is always visible)
  */
 public class GameDetailView extends JPanel {
 
-    private final JLabel imageLabel;
-    private final JLabel titleValueLabel;
-    private final JLabel genreValueLabel;
-    private final JLabel playersValueLabel;
-    private final JLabel ratingValueLabel;
+    private final JLabel   imageLabel;
+    private final JLabel   titleValueLabel;
+    private final JLabel   genreValueLabel;
+    private final JLabel   playersValueLabel;
+    private final JLabel   ratingValueLabel;
     private final JTextArea descriptionArea;
-    private final DefaultListModel<Review> reviewsModel;
-    private final JList<Review> reviewsList;
-    private final JButton writeReviewButton;
-    private final JSpinner reviewRatingSpinner;
+
+    private final DefaultListModel<Review> reviewsModel = new DefaultListModel<>();
+    private final JList<Review>            reviewsList;
+
+    private final JSpinner  reviewRatingSpinner;
     private final JTextArea reviewCommentArea;
-    private final JButton submitReviewButton;
-    private final JButton addToCollectionButton;
+    private final JButton   submitReviewButton;
+    private final JButton   addToCollectionButton;
+    private final JButton   backButton;
+
     private Game displayedGame;
 
-    /**
-     * Constructs and lays out the game detail view.
-     */
     public GameDetailView() {
         setLayout(new BorderLayout(8, 8));
 
+        // ── NORTH: image + metadata ───────────────────────────────────────────
         imageLabel = new JLabel("No Image", JLabel.CENTER);
         imageLabel.setHorizontalTextPosition(JLabel.CENTER);
         imageLabel.setVerticalTextPosition(JLabel.BOTTOM);
@@ -62,55 +74,63 @@ public class GameDetailView extends JPanel {
         playersValueLabel = new JLabel("-");
         infoPanel.add(playersValueLabel);
 
-        infoPanel.add(new JLabel("Average Rating:"));
+        infoPanel.add(new JLabel("Avg Rating:"));
         ratingValueLabel = new JLabel("-");
         infoPanel.add(ratingValueLabel);
+
         JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
         headerPanel.add(imageLabel, BorderLayout.WEST);
-        headerPanel.add(infoPanel, BorderLayout.CENTER);
+        headerPanel.add(infoPanel,  BorderLayout.CENTER);
         add(headerPanel, BorderLayout.NORTH);
 
+        // ── CENTER: description + reviews ─────────────────────────────────────
         descriptionArea = new JTextArea(7, 35);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setEditable(false);
 
-        reviewsModel = new DefaultListModel<>();
         reviewsList = new JList<>(reviewsModel);
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 8, 8));
         centerPanel.add(new JScrollPane(descriptionArea));
-        centerPanel.add(new JScrollPane(reviewsList));
+
+        JPanel reviewsPanel = new JPanel(new BorderLayout());
+        reviewsPanel.setBorder(BorderFactory.createTitledBorder("Community Reviews"));
+        reviewsPanel.add(new JScrollPane(reviewsList), BorderLayout.CENTER);
+        centerPanel.add(reviewsPanel);
         add(centerPanel, BorderLayout.CENTER);
 
-        JPanel reviewPanel = new JPanel(new BorderLayout(6, 6));
-        JPanel topReviewControls = new JPanel(new GridLayout(0, 2, 6, 6));
-        writeReviewButton = new JButton("Write Review");
-        topReviewControls.add(writeReviewButton);
-        topReviewControls.add(new JLabel());
-        topReviewControls.add(new JLabel("Your Rating (1-10):"));
-        reviewRatingSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 10, 1));
-        topReviewControls.add(reviewRatingSpinner);
-        reviewPanel.add(topReviewControls, BorderLayout.NORTH);
+        // ── SOUTH: review form + action buttons ───────────────────────────────
+        JPanel southPanel = new JPanel(new BorderLayout(6, 6));
+        southPanel.setBorder(BorderFactory.createTitledBorder("Write a Review"));
 
-        reviewCommentArea = new JTextArea(5, 30);
+        JPanel ratingRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        ratingRow.add(new JLabel("Your Rating (1-10):"));
+        reviewRatingSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 10, 1));
+        ratingRow.add(reviewRatingSpinner);
+        southPanel.add(ratingRow, BorderLayout.NORTH);
+
+        reviewCommentArea = new JTextArea(4, 30);
         reviewCommentArea.setLineWrap(true);
         reviewCommentArea.setWrapStyleWord(true);
-        reviewPanel.add(new JScrollPane(reviewCommentArea), BorderLayout.CENTER);
+        southPanel.add(new JScrollPane(reviewCommentArea), BorderLayout.CENTER);
 
-        JPanel actionPanel = new JPanel();
-        submitReviewButton = new JButton("Submit Review");
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        submitReviewButton    = new JButton("Submit Review");
         addToCollectionButton = new JButton("Add to Collection");
-        actionPanel.add(submitReviewButton);
+        backButton            = new JButton("Back");
+        actionPanel.add(backButton);
         actionPanel.add(addToCollectionButton);
-        reviewPanel.add(actionPanel, BorderLayout.SOUTH);
+        actionPanel.add(submitReviewButton);
+        southPanel.add(actionPanel, BorderLayout.SOUTH);
 
-        add(reviewPanel, BorderLayout.SOUTH);
+        add(southPanel, BorderLayout.SOUTH);
     }
 
+    // ── Display ───────────────────────────────────────────────────────────────
+
     /**
-     * Updates the UI to display the provided game details.
-     *
-     * @param game game to display
+     * Populates all fields with data from the given game.
+     * Passing null clears all fields.
      */
     public void displayGame(Game game) {
         displayedGame = game;
@@ -124,7 +144,6 @@ public class GameDetailView extends JPanel {
             updateImage(null);
             return;
         }
-
         titleValueLabel.setText(safeText(game.getTitle()));
         genreValueLabel.setText(safeText(game.getGenre()));
         playersValueLabel.setText(game.getMinPlayers() + " - " + game.getMaxPlayers());
@@ -134,137 +153,67 @@ public class GameDetailView extends JPanel {
         updateImage(game.getImagePath());
     }
 
-    /**
-     * Returns the game currently shown on the screen.
-     *
-     * @return displayed game, or null
-     */
-    public Game getDisplayedGame() {
-        return displayedGame;
+    /** Replaces the community reviews list. */
+    public void setDisplayedReviews(List<Review> reviews) {
+        reviewsModel.clear();
+        if (reviews == null) return;
+        for (Review r : reviews) reviewsModel.addElement(r);
     }
 
-    /**
-     * Returns the review rating chosen in the spinner.
-     *
-     * @return integer rating from 1 to 10
-     */
-    public int getEnteredReviewRating() {
-        return (Integer) reviewRatingSpinner.getValue();
-    }
-
-    /**
-     * Returns the review comment entered by the user.
-     *
-     * @return trimmed comment text
-     */
-    public String getEnteredReviewComment() {
-        return reviewCommentArea.getText().trim();
-    }
-
-    /**
-     * Clears the review form inputs.
-     */
+    /** Resets the review form to defaults. */
     public void clearReviewForm() {
         reviewRatingSpinner.setValue(8);
         reviewCommentArea.setText("");
     }
 
-    /**
-     * Replaces the publicly visible review list for the displayed game.
-     *
-     * @param reviews reviews to display
-     */
-    public void setDisplayedReviews(List<Review> reviews) {
-        reviewsModel.clear();
-        if (reviews == null) {
-            return;
-        }
-        for (Review review : reviews) {
-            reviewsModel.addElement(review);
-        }
-    }
+    // ── Getters ───────────────────────────────────────────────────────────────
+
+    public Game   getDisplayedGame()        { return displayedGame; }
+    public int    getEnteredReviewRating()  { return (Integer) reviewRatingSpinner.getValue(); }
+    public String getEnteredReviewComment() { return reviewCommentArea.getText().trim(); }
+
+    // ── Listener registration ─────────────────────────────────────────────────
+
+    public void addSubmitReviewListener(ActionListener l)    { submitReviewButton.addActionListener(l); }
+    public void addAddToCollectionListener(ActionListener l) { addToCollectionButton.addActionListener(l); }
 
     /**
-     * Registers the submit-review button listener.
-     *
-     * @param listener action listener for submitting reviews
+     * Registers the Back button listener.
+     * This was missing in the original — back button was added inline in AppCoordinator
+     * but placed in WEST which broke the layout.
      */
-    public void addSubmitReviewListener(ActionListener listener) {
-        submitReviewButton.addActionListener(listener);
-    }
+    public void addBackListener(ActionListener l) { backButton.addActionListener(l); }
 
-    /**
-     * Registers the write-review button listener.
-     *
-     * @param listener action listener for opening review entry
-     */
-    public void addWriteReviewListener(ActionListener listener) {
-        writeReviewButton.addActionListener(listener);
-    }
+    // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Registers the add-to-collection button listener.
-     *
-     * @param listener action listener for collection action
-     */
-    public void addAddToCollectionListener(ActionListener listener) {
-        addToCollectionButton.addActionListener(listener);
-    }
-
-    /**
-     * Returns non-null display text.
-     *
-     * @param value source text
-     * @return value or "-"
-     */
     private String safeText(String value) {
         return (value == null || value.isBlank()) ? "-" : value;
     }
 
     /**
-     * Loads and displays a game image from a remote URL or local file path.
-     * <p>
-     * The original implementation used {@code new ImageIcon(path)}, which only
-     * supports local filesystem paths. Because BoardGameGeek XML provides full
-     * HTTPS URLs for both thumbnails and full images, this method resolves the
-     * path as a {@link java.net.URL} and loads the image over the network.
-     * <p>
-     * Behavior:
-     * <ul>
-     *     <li>If the path is null or blank, a "No Image" placeholder is shown.</li>
-     *     <li>If the URL cannot be loaded or returns invalid image data,
-     *         the placeholder is shown.</li>
-     *     <li>Valid images are scaled smoothly to 140×140 pixels.</li>
-     * </ul>
-     *
-     * @param imagePath a URL or file path pointing to the game's image
+     * Loads and scales a game image from a URL or local path.
+     * Shows "No Image" placeholder on any failure.
      */
-
     private void updateImage(String imagePath) {
         if (imagePath == null || imagePath.isBlank()) {
             imageLabel.setIcon(null);
             imageLabel.setText("No Image");
             return;
         }
-
         try {
-            java.net.URL url = new java.net.URL(imagePath);
-            ImageIcon icon = new ImageIcon(url);
-
+            java.net.URL url = java.net.URI.create(imagePath).toURL();
+            ImageIcon icon   = new ImageIcon(url);
             if (icon.getIconWidth() <= 0) {
                 imageLabel.setIcon(null);
                 imageLabel.setText("No Image");
                 return;
             }
-
             Image scaled = icon.getImage().getScaledInstance(140, 140, Image.SCALE_SMOOTH);
             imageLabel.setText("");
             imageLabel.setIcon(new ImageIcon(scaled));
-
         } catch (Exception e) {
             imageLabel.setIcon(null);
             imageLabel.setText("No Image");
         }
     }
-
 }

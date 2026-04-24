@@ -2,6 +2,7 @@ package View;
 
 import Model.Collection;
 import Model.Game;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -17,36 +18,44 @@ import java.awt.event.ActionListener;
 import java.util.List;
 
 /**
- * Collection management view with collection list and selected collection contents.
+ * Collection manager screen.
+ *
+ * Layout:
+ *  CENTER — split pane: collections list (left) | games in selected collection (right)
+ *  SOUTH  — Create Collection, Delete Collection, Remove Game, Back buttons
+ *
+ * Changes from original:
+ *  - addBackListener() added so AppCoordinator can return to game list
+ *  - Labels added above each list panel so users know what they're looking at
  */
 public class CollectionListView extends JPanel {
 
-    private final DefaultListModel<Collection> collectionListModel;
+    private final DefaultListModel<Collection> collectionListModel    = new DefaultListModel<>();
+    private final DefaultListModel<Game>       gamesInCollectionModel = new DefaultListModel<>();
+
     private final JList<Collection> collectionList;
-    private final DefaultListModel<Game> gamesInCollectionModel;
-    private final JList<Game> gamesInCollectionList;
+    private final JList<Game>       gamesInCollectionList;
+
     private final JButton createCollectionButton;
     private final JButton deleteCollectionButton;
     private final JButton removeGameButton;
+    private final JButton backButton;
 
-    /**
-     * Constructs and lays out the collection list view.
-     */
     public CollectionListView() {
         setLayout(new BorderLayout(8, 8));
 
-        collectionListModel = new DefaultListModel<>();
         collectionList = new JList<>(collectionListModel);
         collectionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        gamesInCollectionModel = new DefaultListModel<>();
         gamesInCollectionList = new JList<>(gamesInCollectionModel);
         gamesInCollectionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        // Left panel — list of all collections
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.add(new JLabel("Collections"), BorderLayout.NORTH);
+        leftPanel.add(new JLabel("Your Collections"), BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(collectionList), BorderLayout.CENTER);
 
+        // Right panel — games inside the selected collection
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.add(new JLabel("Games in Selected Collection"), BorderLayout.NORTH);
         rightPanel.add(new JScrollPane(gamesInCollectionList), BorderLayout.CENTER);
@@ -55,15 +64,19 @@ public class CollectionListView extends JPanel {
         splitPane.setResizeWeight(0.4);
         add(splitPane, BorderLayout.CENTER);
 
+        // Bottom button bar
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        backButton             = new JButton("Back");
         createCollectionButton = new JButton("Create Collection");
         deleteCollectionButton = new JButton("Delete Collection");
-        removeGameButton = new JButton("Remove Game");
+        removeGameButton       = new JButton("Remove Game");
+        buttonPanel.add(backButton);
         buttonPanel.add(createCollectionButton);
         buttonPanel.add(deleteCollectionButton);
         buttonPanel.add(removeGameButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
+        // Selecting a collection refreshes the games panel automatically
         collectionList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 showGamesForSelectedCollection();
@@ -71,90 +84,47 @@ public class CollectionListView extends JPanel {
         });
     }
 
-    /**
-     * Replaces the list of visible collections.
-     *
-     * @param collections collections to display
-     */
+    // ── Data setters ──────────────────────────────────────────────────────────
+
+    /** Replaces the list of collections and refreshes the games panel. */
     public void setCollections(List<Collection> collections) {
         collectionListModel.clear();
         if (collections != null) {
-            for (Collection collection : collections) {
-                collectionListModel.addElement(collection);
-            }
+            for (Collection c : collections) collectionListModel.addElement(c);
         }
         showGamesForSelectedCollection();
     }
 
-    /**
-     * Returns the selected collection.
-     *
-     * @return selected collection, or null if no selection exists
-     */
-    public Collection getSelectedCollection() {
-        return collectionList.getSelectedValue();
-    }
+    // ── Getters ───────────────────────────────────────────────────────────────
 
-    /**
-     * Returns the selected game from the selected collection list.
-     *
-     * @return selected game, or null if no selection exists
-     */
-    public Game getSelectedGameInCollection() {
-        return gamesInCollectionList.getSelectedValue();
-    }
+    public Collection getSelectedCollection()     { return collectionList.getSelectedValue(); }
+    public Game       getSelectedGameInCollection(){ return gamesInCollectionList.getSelectedValue(); }
 
-    /**
-     * Prompts for a collection name and returns trimmed user input.
-     *
-     * @return collection name or null if canceled
-     */
+    /** Shows an input dialog and returns the trimmed name, or null if cancelled. */
     public String promptForCollectionName() {
         String name = JOptionPane.showInputDialog(this, "Enter collection name:");
-        if (name == null) {
-            return null;
-        }
-        return name.trim();
+        return name == null ? null : name.trim();
     }
 
-    /**
-     * Registers the create-collection button listener.
-     *
-     * @param listener action listener for creating collections
-     */
-    public void addCreateCollectionListener(ActionListener listener) {
-        createCollectionButton.addActionListener(listener);
-    }
+    // ── Listener registration ─────────────────────────────────────────────────
+
+    public void addBackListener(ActionListener l)             { backButton.addActionListener(l); }
+    public void addCreateCollectionListener(ActionListener l) { createCollectionButton.addActionListener(l); }
+    public void addDeleteCollectionListener(ActionListener l) { deleteCollectionButton.addActionListener(l); }
+    public void addRemoveGameListener(ActionListener l)       { removeGameButton.addActionListener(l); }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
-     * Registers the delete-collection button listener.
-     *
-     * @param listener action listener for deleting collections
-     */
-    public void addDeleteCollectionListener(ActionListener listener) {
-        deleteCollectionButton.addActionListener(listener);
-    }
-
-    /**
-     * Registers the remove-game button listener.
-     *
-     * @param listener action listener for removing games from collection
-     */
-    public void addRemoveGameListener(ActionListener listener) {
-        removeGameButton.addActionListener(listener);
-    }
-
-    /**
-     * Reloads the right-side game list for the currently selected collection.
+     * Reloads the right-side game list based on the currently selected collection.
+     * Called automatically when the collection selection changes.
      */
     private void showGamesForSelectedCollection() {
         gamesInCollectionModel.clear();
         Collection selected = collectionList.getSelectedValue();
-        if (selected == null) {
-            return;
-        }
-        for (Game game : selected.getGames()) {
-            gamesInCollectionModel.addElement(game);
+        if (selected == null) return;
+        for (Game g : selected.getGames()) {
+            gamesInCollectionModel.addElement(g);
         }
     }
 }
