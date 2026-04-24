@@ -16,10 +16,12 @@ public class UserDatabase {
     /**
      * Constructs an empty UserDatabase.
      */
-    public UserDatabase() {
+    public UserDatabase(String filePath) {
         users = new ArrayList<>();
-        fileLocation = "";
+        this.fileLocation = filePath;
     }
+
+
 
     /**
      * Loads users from the given CSV file (username,password per line).
@@ -88,8 +90,10 @@ public class UserDatabase {
             return false;
         }
         users.add(new User(username, password));
+        saveUsers();
         return true;
     }
+
 
     /**
      * Retrieves a user by username.
@@ -113,5 +117,6 @@ public class UserDatabase {
      */
     public void deleteUser(String username) {
         users.removeIf(u -> u.getUsername().equals(username));
+        saveUsers();
     }
 }

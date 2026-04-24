@@ -32,12 +32,19 @@ public class GameListView extends JPanel {
     private final JComboBox<String> collectionsCombo;
     private final JButton searchButton;
     private final JButton filterButton;
+    private final JButton deleteGameButton;
     private final JButton viewDetailsButton;
     private final JButton logoutButton;
+    private final JButton addGameButton;
     private final DefaultListModel<Game> gameListModel;
     private final JList<Game> gameList;
     private final DefaultListModel<Game> recentlyViewedModel;
     private final JList<Game> recentlyViewedList;
+    private final JTextField newCollectionField;
+    private final JButton createCollectionButton;
+    private final JButton deleteCollectionButton;
+
+
 
     /**
      * Constructs and lays out the game list view.
@@ -49,13 +56,28 @@ public class GameListView extends JPanel {
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
         JPanel homePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
         homePanel.add(new JLabel("Collections:"));
         collectionsCombo = new JComboBox<>();
         collectionsCombo.setPrototypeDisplayValue("Select Collection           ");
         homePanel.add(collectionsCombo);
+        deleteCollectionButton = new JButton("Delete");
+        homePanel.add(deleteCollectionButton);
+
+
+
+// NEW: create collection UI
+        newCollectionField = new JTextField(10);
+        createCollectionButton = new JButton("Create");
+        homePanel.add(new JLabel("New:"));
+        homePanel.add(newCollectionField);
+        homePanel.add(createCollectionButton);
+
         logoutButton = new JButton("Logout");
         homePanel.add(logoutButton);
+
         topPanel.add(homePanel);
+
 
         JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controlsPanel.add(new JLabel("Search:"));
@@ -105,6 +127,12 @@ public class GameListView extends JPanel {
         centerPanel.add(resultsPanel);
         centerPanel.add(recentPanel);
         add(centerPanel, BorderLayout.CENTER);
+
+        addGameButton = new JButton("Add Game");
+        controlsPanel.add(addGameButton);
+
+        deleteGameButton = new JButton("Delete Game");
+        controlsPanel.add(deleteGameButton);
     }
 
     /**
@@ -122,13 +150,14 @@ public class GameListView extends JPanel {
         }
     }
 
+
     /**
-     * Returns the selected game from the list.
+     * Returns index of selected game in list.
      *
-     * @return selected game, or null if nothing is selected
+     * @return selected index, or -1 if nothing selected
      */
-    public Game getSelectedGame() {
-        return gameList.getSelectedValue();
+    public int getSelectedGameIndex() {
+        return gameList.getSelectedIndex();
     }
 
     /**
@@ -182,6 +211,11 @@ public class GameListView extends JPanel {
         }
         return parseDoubleOrDefault(selected.toString(), -1.0);
     }
+
+    public Game getSelectedGame() {
+        return gameList.getSelectedValue();
+    }
+
 
     /**
      * Updates available collection names in the home-page collection dropdown.
@@ -269,6 +303,13 @@ public class GameListView extends JPanel {
     }
 
     /**
+     * Registers listener for Add Game button.
+     */
+    public void addAddGameListener(ActionListener listener) {
+        addGameButton.addActionListener(listener);
+    }
+
+    /**
      * Registers the logout button listener.
      *
      * @param listener action listener for logout
@@ -312,4 +353,29 @@ public class GameListView extends JPanel {
             return fallback;
         }
     }
+
+    /**
+     * Registers listener for Delete Game button.
+     *
+     * @param listener action listener for deleting a game
+     */
+    public void addDeleteGameListener(ActionListener listener) {
+        deleteGameButton.addActionListener(listener);
+    }
+
+    /** Listener for the Create Collection button */
+    public void addCreateCollectionListener(ActionListener listener) {
+        createCollectionButton.addActionListener(listener);
+    }
+
+    /** Returns the text entered for a new collection */
+    public String getNewCollectionName() {
+        return newCollectionField.getText().trim();
+    }
+
+    public void addDeleteCollectionListener(ActionListener listener) {
+        deleteCollectionButton.addActionListener(listener);
+    }
+
+
 }

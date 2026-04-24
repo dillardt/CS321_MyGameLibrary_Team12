@@ -82,6 +82,20 @@ public class User {
     }
 
     /**
+     * Returns the names of all collections owned by this user.
+     *
+     * @return a list of collection names
+     */
+    public List<String> getCollectionNames() {
+        List<String> names = new ArrayList<>();
+        for (Collection c : collections) {
+            names.add(c.getName());
+        }
+        return names;
+    }
+
+
+    /**
      * Adds a review written by this user.
      *
      * @param review the review object

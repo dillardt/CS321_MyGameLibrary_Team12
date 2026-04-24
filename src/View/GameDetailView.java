@@ -222,10 +222,24 @@ public class GameDetailView extends JPanel {
     }
 
     /**
-     * Updates the game image display from a file path.
+     * Loads and displays a game image from a remote URL or local file path.
+     * <p>
+     * The original implementation used {@code new ImageIcon(path)}, which only
+     * supports local filesystem paths. Because BoardGameGeek XML provides full
+     * HTTPS URLs for both thumbnails and full images, this method resolves the
+     * path as a {@link java.net.URL} and loads the image over the network.
+     * <p>
+     * Behavior:
+     * <ul>
+     *     <li>If the path is null or blank, a "No Image" placeholder is shown.</li>
+     *     <li>If the URL cannot be loaded or returns invalid image data,
+     *         the placeholder is shown.</li>
+     *     <li>Valid images are scaled smoothly to 140×140 pixels.</li>
+     * </ul>
      *
-     * @param imagePath image file path
+     * @param imagePath a URL or file path pointing to the game's image
      */
+
     private void updateImage(String imagePath) {
         if (imagePath == null || imagePath.isBlank()) {
             imageLabel.setIcon(null);
@@ -233,15 +247,24 @@ public class GameDetailView extends JPanel {
             return;
         }
 
-        ImageIcon icon = new ImageIcon(imagePath);
-        if (icon.getIconWidth() <= 0 || icon.getIconHeight() <= 0) {
+        try {
+            java.net.URL url = new java.net.URL(imagePath);
+            ImageIcon icon = new ImageIcon(url);
+
+            if (icon.getIconWidth() <= 0) {
+                imageLabel.setIcon(null);
+                imageLabel.setText("No Image");
+                return;
+            }
+
+            Image scaled = icon.getImage().getScaledInstance(140, 140, Image.SCALE_SMOOTH);
+            imageLabel.setText("");
+            imageLabel.setIcon(new ImageIcon(scaled));
+
+        } catch (Exception e) {
             imageLabel.setIcon(null);
             imageLabel.setText("No Image");
-            return;
         }
-
-        Image scaled = icon.getImage().getScaledInstance(140, 140, Image.SCALE_SMOOTH);
-        imageLabel.setText("");
-        imageLabel.setIcon(new ImageIcon(scaled));
     }
+
 }

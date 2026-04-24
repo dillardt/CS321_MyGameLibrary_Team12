@@ -22,8 +22,11 @@ public class SystemController {
     public SystemController(String configPath) {
         configManager = new ConfigurationManager(configPath);
         gameDatabase = new GameDatabase();
-        userDatabase = new UserDatabase();
+        userDatabase = new UserDatabase(""); // or null
+        userDatabase.loadUsers(configManager.getUserDBPath());
+
     }
+
 
     /**
      * Initializes the system by loading configuration and databases.
