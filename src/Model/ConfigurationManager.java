@@ -34,11 +34,11 @@ public class ConfigurationManager {
         try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath))) {
             props.load(reader);
             gameDBPath = props.getProperty("gameDB", "data/games.xml");
-            userDBPath = props.getProperty("userDB", "data/users.csv");
+            userDBPath = props.getProperty("userDB", "data/users.xml");
         } catch (IOException e) {
             System.err.println("Config file not found, using defaults: " + e.getMessage());
             gameDBPath = "data/games.xml";
-            userDBPath = "data/users.csv";
+            userDBPath = "data/users.xml";
         }
     }
 

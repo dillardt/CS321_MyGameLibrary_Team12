@@ -64,7 +64,7 @@ public class AppCoordinator {
 
         frame = new JFrame("My Game Library");
 
-        userDatabase = new UserDatabase("data/users.csv");
+        userDatabase = new UserDatabase("data/users.xml");
         gameDatabase = new GameDatabase("data/bgg90Games.xml");
 
 
