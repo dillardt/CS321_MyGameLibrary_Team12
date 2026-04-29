@@ -1,33 +1,47 @@
 package Model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Represents a registered system user.
- * Holds credentials, collections, reviews, and recently viewed games.
- * All user data persists across sessions.
+ * Holds credentials, role, collections, reviews, and recently viewed games.
  */
 public class User {
 
     private String username;
     private String password;
+    private UserRole role;
     private List<Collection> collections;
     private List<Review> reviews;
     private List<Game> recentlyViewed;
 
     /**
      * Constructs a User with the given username and password.
+     * Default role is USER. Use setRole() to promote to ADMIN.
      *
      * @param username the user's login name
      * @param password the user's password
      */
     public User(String username, String password) {
-        this.username     = username;
-        this.password = password;
-        this.collections  = new ArrayList<>();
-        this.reviews      = new ArrayList<>();
+        this.username       = username;
+        this.password       = password;
+        this.role           = UserRole.USER;
+        this.collections    = new ArrayList<>();
+        this.reviews        = new ArrayList<>();
         this.recentlyViewed = new ArrayList<>();
+    }
+
+    /**
+     * Constructs a User with an explicit role.
+     * Used by UserDatabase when loading from XML.
+     *
+     * @param username the user's login name
+     * @param password the user's password
+     * @param role     the user's role
+     */
+    public User(String username, String password, UserRole role) {
+        this(username, password);
+        this.role = role;
     }
 
     /**
@@ -94,7 +108,6 @@ public class User {
         return names;
     }
 
-
     /**
      * Adds a review written by this user.
      *
@@ -115,19 +128,34 @@ public class User {
     }
 
     /**
+     * Returns true if this user has ADMIN role.
+     *
+     * @return true if admin
+     */
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
+
+    /**
      * Clears any session-specific state on logout.
      */
     public void logout() {
         // Session cleanup can be added here if needed
     }
 
-    // --- Getters ---
+    // --- Getters and Setters ---
 
     /** @return the username */
     public String getUsername()              { return username; }
 
-    /** @return the stored password hash */
-    public String getPassword()          { return password; }
+    /** @return the stored password */
+    public String getPassword()              { return password; }
+
+    /** @return the user's role */
+    public UserRole getRole()                { return role; }
+
+    /** @param role the role to assign */
+    public void setRole(UserRole role)       { this.role = role; }
 
     /** @return the user's collections */
     public List<Collection> getCollections() { return collections; }

@@ -1,24 +1,9 @@
 package View;
 
 import Model.Game;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.List;
 
 /**
@@ -27,18 +12,28 @@ import java.util.List;
  * Layout:
  *  NORTH  — top bar: collections dropdown + create/delete + logout
  *  CENTER — search/filter bar above; game results list left; recently viewed right
- *  SOUTH  — View Details, Add, Delete, Manage Collections buttons
+ *  SOUTH  — View Details, Add Game (admin only), Delete Game (admin only), Manage Collections
  *
- * All the original methods are kept. New methods added:
- *  - addRecentlyViewedClickListener  (double-click recently viewed → open detail)
- *  - addManageCollectionsListener    (open the CollectionListView)
- *  - clearNewCollectionField         (reset after create)
+ * Key fixes:
+ *  - Collections dropdown always has "-- All Games --" at index 0 so the user
+ *    is never locked inside an empty collection after creating one.
+ *  - setCollectionNames() suppresses the ActionListener during model rebuild
+ *    so it doesn't auto-fire and scope the game list to the first collection.
+ *  - setAdminControlsVisible() shows/hides Add Game and Delete Game buttons
+ *    based on whether the logged-in user has ADMIN role.
+ *  - resetCollectionSelection() resets the dropdown back to "-- All Games --".
  */
 public class GameListView extends JPanel {
 
+    // Sentinel value shown at index 0 — means "show full game list"
+    private static final String ALL_GAMES = "-- All Games --";
+
+    // Flag to suppress the collection ActionListener during model rebuilds
+    private boolean suppressCollectionListener = false;
+
     // ── Models ────────────────────────────────────────────────────────────────
-    private final DefaultListModel<Game>      gameListModel       = new DefaultListModel<>();
-    private final DefaultListModel<Game>      recentlyViewedModel = new DefaultListModel<>();
+    private final DefaultListModel<Game> gameListModel       = new DefaultListModel<>();
+    private final DefaultListModel<Game> recentlyViewedModel = new DefaultListModel<>();
 
     // ── Lists ─────────────────────────────────────────────────────────────────
     private final JList<Game> gameList;
@@ -153,9 +148,11 @@ public class GameListView extends JPanel {
 
         // ── Bottom bar: action buttons ────────────────────────────────────────
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        viewDetailsButton   = new JButton("View Details");
-        addGameButton       = new JButton("Add Game");
-        deleteGameButton    = new JButton("Delete Game");
+        viewDetailsButton       = new JButton("View Details");
+        addGameButton           = new JButton("Add Game");
+        deleteGameButton        = new JButton("Delete Game");
+        addGameButton.setVisible(false);   // hidden until admin logs in
+        deleteGameButton.setVisible(false);
         bottomPanel.add(viewDetailsButton);
         bottomPanel.add(addGameButton);
         bottomPanel.add(deleteGameButton);
@@ -178,16 +175,52 @@ public class GameListView extends JPanel {
         for (Game g : games) recentlyViewedModel.addElement(g);
     }
 
-    /** Refreshes the collection names in the dropdown. */
+    /**
+     * Refreshes the collections dropdown.
+     * Always inserts "-- All Games --" at index 0 so the user can always
+     * get back to the full list.
+     * Suppresses the ActionListener during rebuild so it doesn't auto-fire
+     * and accidentally scope the game list to the first collection.
+     */
     public void setCollectionNames(List<String> names) {
+        suppressCollectionListener = true;
         DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
-        if (names != null) for (String n : names) model.addElement(n);
+        model.addElement(ALL_GAMES); // index 0 — always present
+        if (names != null) {
+            for (String n : names) model.addElement(n);
+        }
         collectionsCombo.setModel(model);
+        collectionsCombo.setSelectedIndex(0); // default to All Games
+        suppressCollectionListener = false;
+    }
+
+    /**
+     * Resets the collections dropdown back to "-- All Games --".
+     * Called after creating a new collection so the user isn't locked
+     * inside the empty collection they just made.
+     */
+    public void resetCollectionSelection() {
+        suppressCollectionListener = true;
+        collectionsCombo.setSelectedIndex(0);
+        suppressCollectionListener = false;
     }
 
     /** Clears the new-collection text field after a successful create. */
     public void clearNewCollectionField() {
         newCollectionField.setText("");
+    }
+
+    /**
+     * Shows or hides the Add Game and Delete Game buttons.
+     * Should be called with true only when an ADMIN user is logged in.
+     *
+     * @param visible true to show admin controls, false to hide them
+     */
+    public void setAdminControlsVisible(boolean visible) {
+        addGameButton.setVisible(visible);
+        deleteGameButton.setVisible(visible);
+        revalidate();
+        repaint();
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
@@ -196,9 +229,14 @@ public class GameListView extends JPanel {
     public Game   getSelectedGame()               { return gameList.getSelectedValue(); }
     public Game   getSelectedRecentlyViewedGame() { return recentlyViewedList.getSelectedValue(); }
     public String getSearchCriteria()             { return searchField.getText().trim(); }
+
+    /**
+     * Returns the selected collection name, or null if "-- All Games --" is selected.
+     */
     public String getSelectedCollectionName() {
         Object s = collectionsCombo.getSelectedItem();
-        return s == null ? null : s.toString();
+        if (s == null || ALL_GAMES.equals(s.toString())) return null;
+        return s.toString();
     }
 
     /** Returns the new collection name typed in the inline field. */
@@ -225,24 +263,28 @@ public class GameListView extends JPanel {
 
     // ── Listener registration ─────────────────────────────────────────────────
 
-    public void addSearchListener(ActionListener l)         { searchButton.addActionListener(l); }
-    public void addFilterListener(ActionListener l)         { filterButton.addActionListener(l); }
-    public void addViewDetailsListener(ActionListener l)    { viewDetailsButton.addActionListener(l); }
-    public void addAddGameListener(ActionListener l)        { addGameButton.addActionListener(l); }
-    public void addDeleteGameListener(ActionListener l)     { deleteGameButton.addActionListener(l); }
-    public void addLogoutListener(ActionListener l)         { logoutButton.addActionListener(l); }
+    public void addSearchListener(ActionListener l)           { searchButton.addActionListener(l); }
+    public void addFilterListener(ActionListener l)           { filterButton.addActionListener(l); }
+    public void addViewDetailsListener(ActionListener l)      { viewDetailsButton.addActionListener(l); }
+    public void addAddGameListener(ActionListener l)          { addGameButton.addActionListener(l); }
+    public void addDeleteGameListener(ActionListener l)       { deleteGameButton.addActionListener(l); }
+    public void addLogoutListener(ActionListener l)           { logoutButton.addActionListener(l); }
     public void addCreateCollectionListener(ActionListener l) { createCollectionButton.addActionListener(l); }
     public void addDeleteCollectionListener(ActionListener l) { deleteCollectionButton.addActionListener(l); }
     public void addManageCollectionsListener(ActionListener l){ manageCollectionsButton.addActionListener(l); }
 
-    /** Fires when the collection combo box selection changes. */
+    /**
+     * Fires when the user manually changes the collection dropdown.
+     * Suppressed during model rebuilds via the suppressCollectionListener flag.
+     */
     public void addCollectionSelectionListener(ActionListener l) {
-        collectionsCombo.addActionListener(l);
+        collectionsCombo.addActionListener(e -> {
+            if (!suppressCollectionListener) l.actionPerformed(e);
+        });
     }
 
     /**
      * Double-clicking a game in the recently-viewed list triggers this listener.
-     * The AppCoordinator reads getSelectedRecentlyViewedGame() to get the game.
      */
     public void addRecentlyViewedClickListener(ActionListener l) {
         recentlyViewedList.addMouseListener(new MouseAdapter() {

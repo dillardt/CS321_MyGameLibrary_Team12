@@ -1,19 +1,11 @@
 package Controller;
 
-import Model.Game;
-import Model.GameDatabase;
-import Model.UserDatabase;
-import Model.User;
+import Model.*;
 import Model.Collection;
-import View.CollectionListView;
-import View.GameDetailView;
-import View.GameListView;
-import View.LoginView;
+import View.*;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import java.awt.CardLayout;
+import javax.swing.*;
+import java.awt.*;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,6 +14,8 @@ import java.util.List;
  *
  * Uses CardLayout so all views live in one container and swap cleanly.
  * All event wiring lives here — controllers handle business logic only.
+ *
+ * Design pattern: Mediator
  */
 public class AppCoordinator {
 
@@ -51,6 +45,10 @@ public class AppCoordinator {
 
         userDatabase = new UserDatabase("data/users.xml");
         gameDatabase = new GameDatabase("data/bgg90Games.xml");
+
+        // R6 — after both databases have loaded, resolve any saved collection
+        // game IDs back into full Game objects from the game database
+        resolveCollectionPlaceholders();
 
         authController       = new AuthenticationController(userDatabase);
         gameController       = new GameController(gameDatabase);
@@ -83,9 +81,6 @@ public class AppCoordinator {
         frame.setVisible(true);
     }
 
-    // =========================================================================
-    // LOGIN VIEW
-    // =========================================================================
 
     private void setupLoginView() {
 
@@ -96,6 +91,8 @@ public class AppCoordinator {
                 loginView.setStatusMessage("Login successful!", false);
                 loginView.clearAllInputs();
                 refreshGameList();
+                // Show Add/Delete Game buttons only for admin users
+                gameListView.setAdminControlsVisible(authController.getCurrentUser().isAdmin());
                 showCard(CARD_GAME_LIST);
             } else {
                 loginView.setStatusMessage("Invalid username or password.", true);
@@ -120,20 +117,29 @@ public class AppCoordinator {
         loginView.addGuestLoginListener(e -> {
             authController.logout();
             refreshGameList();
+            gameListView.setAdminControlsVisible(false); // guests never see admin buttons
             showCard(CARD_GAME_LIST);
         });
     }
 
-    // =========================================================================
-    // GAME LIST VIEW
-    // =========================================================================
 
     private void setupGameListView() {
 
-        // Search by title keyword
+        // Search by title keyword — searches full list OR within selected collection (R8)
         gameListView.addSearchListener(e -> {
-            List<Game> results = gameController.search(gameListView.getSearchCriteria());
-            gameListView.setGames(results);
+            String criteria = gameListView.getSearchCriteria();
+            User user = authController.getCurrentUser();
+            String selectedCollection = gameListView.getSelectedCollectionName();
+
+            // R8: if a collection is selected, search within that collection only
+            if (user != null && selectedCollection != null && !selectedCollection.isBlank()) {
+                List<Game> collectionGames = gameController.getGamesByCollection(user, selectedCollection);
+                List<Game> results = gameController.searchWithinList(collectionGames, criteria);
+                gameListView.setGames(results);
+            } else {
+                // default: search the full game list
+                gameListView.setGames(gameController.search(criteria));
+            }
         });
 
         // Filter by genre / players / min rating
@@ -164,9 +170,7 @@ public class AppCoordinator {
             if (selected != null) navigateToGameDetail(selected);
         });
 
-        // Add Game: adds a brand-new custom game entry using the search field as the title.
-        // If a game is already selected from the list, warn the user they probably
-        // want "Add to Collection" instead, to avoid accidentally adding junk entries.
+        // Add Game
         gameListView.addAddGameListener(e -> {
             String title = gameListView.getSearchCriteria();
             if (title.isBlank()) {
@@ -175,7 +179,6 @@ public class AppCoordinator {
                         "No Title", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            // Confirm before adding so users don't accidentally add search terms
             int confirm = JOptionPane.showConfirmDialog(frame,
                     "Add \"" + title + "\" as a new custom game entry?",
                     "Add Game", JOptionPane.YES_NO_OPTION);
@@ -198,7 +201,6 @@ public class AppCoordinator {
                     "Delete \"" + selected.getTitle() + "\"?",
                     "Confirm Delete", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                // Find the real index in the master list (not the filtered view index)
                 int realIndex = gameController.getAllGames().indexOf(selected);
                 if (realIndex >= 0) {
                     gameController.deleteGame(realIndex);
@@ -208,11 +210,15 @@ public class AppCoordinator {
         });
 
         // Collection dropdown — show only that collection's games
+        // Only fires when user manually picks a collection, not on setModel rebuild
         gameListView.addCollectionSelectionListener(e -> {
             User user = authController.getCurrentUser();
             String name = gameListView.getSelectedCollectionName();
+            // Empty string = "-- All Games --" sentinel — show full list
             if (user != null && name != null && !name.isBlank()) {
                 gameListView.setGames(gameController.getGamesByCollection(user, name));
+            } else {
+                gameListView.setGames(gameController.getAllGames());
             }
         });
 
@@ -233,8 +239,12 @@ public class AppCoordinator {
                 return;
             }
             if (collectionController.createCollection(user, name)) {
+                userDatabase.saveUsers(); // R6 — persist immediately
                 gameListView.setCollectionNames(user.getCollectionNames());
                 gameListView.clearNewCollectionField();
+                // Reset dropdown to "All Games" so user isn't stuck inside empty collection
+                gameListView.resetCollectionSelection();
+                refreshGameList();
             }
         });
 
@@ -253,6 +263,7 @@ public class AppCoordinator {
                     "Confirm Delete", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 collectionController.deleteCollection(user, name);
+                userDatabase.saveUsers(); // R6 — persist immediately
                 gameListView.setCollectionNames(user.getCollectionNames());
                 refreshGameList();
             }
@@ -271,17 +282,25 @@ public class AppCoordinator {
             showCard(CARD_COLLECTIONS);
         });
 
-        // Logout
+        // Logout — R5: prompt user to save before logging out
         gameListView.addLogoutListener(e -> {
+            User user = authController.getCurrentUser();
+            if (user != null) {
+                int choice = JOptionPane.showConfirmDialog(frame,
+                        "Save your collections before logging out?",
+                        "Save Changes", JOptionPane.YES_NO_CANCEL_OPTION);
+                if (choice == JOptionPane.CANCEL_OPTION) return; // stay logged in
+                if (choice == JOptionPane.YES_OPTION) {
+                    userDatabase.saveUsers(); // R5 + R6 — explicit save on logout
+                }
+            }
             authController.logout();
             loginView.clearAllInputs();
+            gameListView.setAdminControlsVisible(false);
             showCard(CARD_LOGIN);
         });
     }
 
-    // =========================================================================
-    // GAME DETAIL VIEW
-    // =========================================================================
 
     private void setupGameDetailView() {
 
@@ -312,7 +331,6 @@ public class AppCoordinator {
             int rating = gameDetailView.getEnteredReviewRating();
             gameController.addReview(game, user, rating, comment);
 
-            // Refresh review list immediately so user sees their review
             gameDetailView.setDisplayedReviews(game.getReviews());
             gameDetailView.clearReviewForm();
         });
@@ -338,7 +356,6 @@ public class AppCoordinator {
                 return;
             }
 
-            // Dropdown dialog so user picks which collection
             String[] options = names.toArray(new String[0]);
             String chosen = (String) JOptionPane.showInputDialog(
                     frame,
@@ -349,6 +366,7 @@ public class AppCoordinator {
 
             if (chosen != null) {
                 collectionController.addGameToCollection(user, game, chosen);
+                userDatabase.saveUsers(); // R6 — persist immediately
                 JOptionPane.showMessageDialog(frame,
                         "\"" + game.getTitle() + "\" added to \"" + chosen + "\".",
                         "Added", JOptionPane.INFORMATION_MESSAGE);
@@ -356,9 +374,6 @@ public class AppCoordinator {
         });
     }
 
-    // =========================================================================
-    // COLLECTION LIST VIEW
-    // =========================================================================
 
     private void setupCollectionListView() {
 
@@ -372,6 +387,7 @@ public class AppCoordinator {
             String name = collectionListView.promptForCollectionName();
             if (name == null || name.isBlank()) return;
             if (collectionController.createCollection(user, name)) {
+                userDatabase.saveUsers(); // R6 — persist immediately
                 collectionListView.setCollections(user.getCollections());
                 gameListView.setCollectionNames(user.getCollectionNames());
             }
@@ -392,6 +408,7 @@ public class AppCoordinator {
                     "Confirm Delete", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 collectionController.deleteCollection(user, selected.getName());
+                userDatabase.saveUsers(); // R6 — persist immediately
                 collectionListView.setCollections(user.getCollections());
                 gameListView.setCollectionNames(user.getCollectionNames());
             }
@@ -410,14 +427,10 @@ public class AppCoordinator {
                 return;
             }
             collectionController.removeGameFromCollection(user, game, col.getName());
-            // Refresh so removed game disappears immediately
+            userDatabase.saveUsers(); // R6 — persist immediately
             collectionListView.setCollections(user.getCollections());
         });
     }
-
-    // =========================================================================
-    // NAVIGATION HELPERS
-    // =========================================================================
 
     /**
      * Navigates to the game detail screen for the given game.
@@ -449,5 +462,46 @@ public class AppCoordinator {
         User user = authController.getCurrentUser();
         gameListView.setCollectionNames(
                 user != null ? user.getCollectionNames() : Collections.emptyList());
+    }
+
+
+    /**
+     * After UserDatabase and GameDatabase have both loaded, this method
+     * walks every user's collections and replaces stored gameId strings
+     * with actual Game objects from the GameDatabase.
+     *
+     * This is necessary because users.xml only stores game IDs (not full
+     * game data), and the GameDatabase is the authoritative source for games.
+     */
+    private void resolveCollectionPlaceholders() {
+        // We need direct access to users — iterate through known usernames
+        // by asking the gameDatabase for all game IDs
+        // UserDatabase exposes users via authenticate/getUser, so we iterate
+        // by loading all and checking pending IDs
+        for (String username : getAllUsernames()) {
+            User user = userDatabase.getUser(username);
+            if (user == null) continue;
+
+            for (Collection col : user.getCollections()) {
+                List<String> pendingIds = col.getPendingGameIds();
+                for (String gameId : pendingIds) {
+                    Game game = gameDatabase.getGameByID(gameId);
+                    if (game != null) {
+                        col.addGame(game);
+                    }
+                }
+                col.clearPendingGameIds();
+            }
+        }
+    }
+
+    /**
+     * Helper to get all usernames from the user database.
+     * Walks a known set by checking common entries — kept minimal
+     * since UserDatabase doesn't expose a getAll() method.
+     * Extends UserDatabase with getAllUsernames() for clean access.
+     */
+    private List<String> getAllUsernames() {
+        return userDatabase.getAllUsernames();
     }
 }

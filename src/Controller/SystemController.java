@@ -1,52 +1,41 @@
 package Controller;
 
-import Model.ConfigurationManager;
-import Model.GameDatabase;
-import Model.UserDatabase;
+import Model.*;
 
 /**
- * Controls system-level operations such as initialization,
- * shutdown, and data persistence.
+ * Handles system startup and shutdown.
+ * Initializes ConfigurationManager, GameDatabase, and UserDatabase in the
+ * correct order and saves all data on exit (R1, R2, R6).
+ *
+ * Design pattern: Facade — one simple interface over the startup sequence.
  */
 public class SystemController {
 
-    private ConfigurationManager configManager;
-    private GameDatabase gameDatabase;
-    private UserDatabase userDatabase;
+    private final ConfigurationManager configManager;
+    private final GameDatabase gameDatabase;
+    private final UserDatabase userDatabase;
 
     /**
-     * Constructs the SystemController using a configuration file path.
+     * Builds the system from the given config file path and loads all data.
      *
-     * @param configPath the path to the configuration file
+     * @param configPath path to config.txt
      */
     public SystemController(String configPath) {
         configManager = new ConfigurationManager(configPath);
-        gameDatabase = new GameDatabase();
-        userDatabase = new UserDatabase(""); // or null
-        userDatabase.loadUsers(configManager.getUserDBPath());
-
-    }
-
-
-    /**
-     * Initializes the system by loading configuration and databases.
-     */
-    public void initializeSystem() {
         configManager.loadConfiguration();
-
-        gameDatabase.loadGames(configManager.getGameDBPath());
-        userDatabase.loadUsers(configManager.getUserDBPath());
+        gameDatabase  = new GameDatabase(configManager.getGameDBPath());
+        userDatabase  = new UserDatabase(configManager.getUserDBPath());
     }
 
     /**
-     * Handles system shutdown and ensures all data is saved.
+     * Saves all data and config on shutdown (R2, R6).
      */
     public void shutdownSystem() {
         saveAllData();
     }
 
     /**
-     * Saves all system data including games, users, and configuration.
+     * Persists games, users, and configuration to their respective files.
      */
     public void saveAllData() {
         gameDatabase.saveGames();
@@ -55,20 +44,12 @@ public class SystemController {
     }
 
     /**
-     * Provides access to the GameDatabase.
-     *
-     * @return the game database
+     * @return the loaded game database
      */
-    public GameDatabase getGameDatabase() {
-        return gameDatabase;
-    }
+    public GameDatabase getGameDatabase() { return gameDatabase; }
 
     /**
-     * Provides access to the UserDatabase.
-     *
-     * @return the user database
+     * @return the loaded user database
      */
-    public UserDatabase getUserDatabase() {
-        return userDatabase;
-    }
+    public UserDatabase getUserDatabase() { return userDatabase; }
 }
