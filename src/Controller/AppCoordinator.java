@@ -275,6 +275,10 @@ public class AppCoordinator {
                 gameListView.clearNewCollectionField();
                 gameListView.resetCollectionSelection();
                 refreshGameList();
+            } else {
+                JOptionPane.showMessageDialog(frame,
+                        "A collection named \"" + name + "\" already exists.",
+                        "Duplicate Name", JOptionPane.WARNING_MESSAGE);
             }
         });
 
@@ -422,6 +426,10 @@ public class AppCoordinator {
                 userDatabase.saveUsers(); // R6 — persist immediately
                 collectionListView.setCollections(user.getCollections());
                 gameListView.setCollectionNames(user.getCollectionNames());
+            } else {
+                JOptionPane.showMessageDialog(frame,
+                        "A collection named \"" + name + "\" already exists.",
+                        "Duplicate Name", JOptionPane.WARNING_MESSAGE);
             }
         });
 
