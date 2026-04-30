@@ -7,11 +7,10 @@ public class CollectionController {
 
     public CollectionController() {}
 
-    /** Creates a new collection for the user */
+    /** Creates a new collection for the user — returns false if name is blank or already exists */
     public boolean createCollection(User user, String name) {
         if (user == null || name == null || name.isBlank()) return false;
-        user.createCollection(name);
-        return true;
+        return user.createCollection(name) != null;
     }
 
     /** Deletes a collection */
