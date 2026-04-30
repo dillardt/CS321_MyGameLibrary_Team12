@@ -2,23 +2,12 @@ package View;
 
 import Model.Game;
 import Model.Review;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.SpinnerNumberModel;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.awt.Image;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
+
+import static View.LoginView.*;
 
 /**
  * Game detail screen.
@@ -27,19 +16,14 @@ import java.util.List;
  *  NORTH  — image + metadata (title, genre, players, rating)
  *  CENTER — description (left) + community reviews list (right)
  *  SOUTH  — review form (rating spinner + comment area + submit) + Add to Collection + Back
- *
- * Changes from original:
- *  - addBackListener() added so AppCoordinator can wire the Back button
- *  - setDisplayedReviews() is now called (not commented out) — reviews show immediately
- *  - writeReviewButton removed (was wired but did nothing — form is always visible)
  */
 public class GameDetailView extends JPanel {
 
-    private final JLabel   imageLabel;
-    private final JLabel   titleValueLabel;
-    private final JLabel   genreValueLabel;
-    private final JLabel   playersValueLabel;
-    private final JLabel   ratingValueLabel;
+    private final JLabel    imageLabel;
+    private final JLabel    titleValueLabel;
+    private final JLabel    genreValueLabel;
+    private final JLabel    playersValueLabel;
+    private final JLabel    ratingValueLabel;
     private final JTextArea descriptionArea;
 
     private final DefaultListModel<Review> reviewsModel = new DefaultListModel<>();
@@ -54,70 +38,110 @@ public class GameDetailView extends JPanel {
     private Game displayedGame;
 
     public GameDetailView() {
+        setBackground(BG_DARK);
         setLayout(new BorderLayout(8, 8));
+        setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
 
         // ── NORTH: image + metadata ───────────────────────────────────────────
         imageLabel = new JLabel("No Image", JLabel.CENTER);
+        imageLabel.setForeground(new Color(150, 155, 170));
         imageLabel.setHorizontalTextPosition(JLabel.CENTER);
         imageLabel.setVerticalTextPosition(JLabel.BOTTOM);
+        imageLabel.setPreferredSize(new Dimension(148, 148));
 
-        JPanel infoPanel = new JPanel(new GridLayout(0, 2, 6, 6));
-        infoPanel.add(new JLabel("Title:"));
-        titleValueLabel = new JLabel("-");
+        JPanel infoPanel = new JPanel(new GridLayout(0, 2, 6, 8));
+        infoPanel.setBackground(BG_PANEL);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        infoPanel.add(fieldLabel("Title:"));
+        titleValueLabel = valueLabel();
+        titleValueLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         infoPanel.add(titleValueLabel);
 
-        infoPanel.add(new JLabel("Genre:"));
-        genreValueLabel = new JLabel("-");
+        infoPanel.add(fieldLabel("Genre:"));
+        genreValueLabel = valueLabel();
         infoPanel.add(genreValueLabel);
 
-        infoPanel.add(new JLabel("Players:"));
-        playersValueLabel = new JLabel("-");
+        infoPanel.add(fieldLabel("Players:"));
+        playersValueLabel = valueLabel();
         infoPanel.add(playersValueLabel);
 
-        infoPanel.add(new JLabel("Avg Rating:"));
-        ratingValueLabel = new JLabel("-");
+        infoPanel.add(fieldLabel("Avg Rating:"));
+        ratingValueLabel = valueLabel();
+        ratingValueLabel.setForeground(new Color(255, 200, 80));
         infoPanel.add(ratingValueLabel);
 
-        JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
+        JPanel headerPanel = new JPanel(new BorderLayout(10, 0));
+        headerPanel.setBackground(BG_PANEL);
+        headerPanel.setBorder(BorderFactory.createLineBorder(new Color(60, 70, 90)));
         headerPanel.add(imageLabel, BorderLayout.WEST);
-        headerPanel.add(infoPanel,  BorderLayout.CENTER);
+        headerPanel.add(infoPanel, BorderLayout.CENTER);
         add(headerPanel, BorderLayout.NORTH);
 
         // ── CENTER: description + reviews ─────────────────────────────────────
+        // Using a noticeably lighter background than BG_DARK so the boxes stand out
+        Color boxBg = new Color(55, 62, 78);
+
         descriptionArea = new JTextArea(7, 35);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setEditable(false);
+        descriptionArea.setBackground(boxBg);
+        descriptionArea.setForeground(new Color(215, 218, 230));
+        descriptionArea.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+
+        JScrollPane descScroll = new JScrollPane(descriptionArea);
+        descScroll.setBorder(darkTitledBorder("Description"));
+        descScroll.getViewport().setBackground(boxBg);
 
         reviewsList = new JList<>(reviewsModel);
-        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 8, 8));
-        centerPanel.add(new JScrollPane(descriptionArea));
+        reviewsList.setBackground(boxBg);
+        reviewsList.setForeground(new Color(215, 218, 230));
+        reviewsList.setSelectionBackground(ACCENT);
+        reviewsList.setSelectionForeground(Color.WHITE);
 
-        JPanel reviewsPanel = new JPanel(new BorderLayout());
-        reviewsPanel.setBorder(BorderFactory.createTitledBorder("Community Reviews"));
-        reviewsPanel.add(new JScrollPane(reviewsList), BorderLayout.CENTER);
-        centerPanel.add(reviewsPanel);
+        JScrollPane reviewsScroll = new JScrollPane(reviewsList);
+        reviewsScroll.setBorder(darkTitledBorder("Community Reviews"));
+        reviewsScroll.getViewport().setBackground(boxBg);
+
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 8, 8));
+        centerPanel.setBackground(BG_DARK);
+        centerPanel.add(descScroll);
+        centerPanel.add(reviewsScroll);
         add(centerPanel, BorderLayout.CENTER);
 
-        // ── SOUTH: review form + action buttons ───────────────────────────────
+        // ── SOUTH: review form ────────────────────────────────────────────────
         JPanel southPanel = new JPanel(new BorderLayout(6, 6));
-        southPanel.setBorder(BorderFactory.createTitledBorder("Write a Review"));
+        southPanel.setBackground(BG_PANEL);
+        southPanel.setBorder(darkTitledBorder("Write a Review"));
 
         JPanel ratingRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        ratingRow.add(new JLabel("Your Rating (1-10):"));
+        ratingRow.setBackground(BG_PANEL);
+        JLabel ratingLabel = new JLabel("Your Rating (1-10):");
+        ratingLabel.setForeground(new Color(180, 185, 200));
+        ratingRow.add(ratingLabel);
         reviewRatingSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 10, 1));
+        reviewRatingSpinner.setBackground(new Color(52, 58, 70));
         ratingRow.add(reviewRatingSpinner);
         southPanel.add(ratingRow, BorderLayout.NORTH);
 
         reviewCommentArea = new JTextArea(4, 30);
         reviewCommentArea.setLineWrap(true);
         reviewCommentArea.setWrapStyleWord(true);
-        southPanel.add(new JScrollPane(reviewCommentArea), BorderLayout.CENTER);
+        reviewCommentArea.setBackground(boxBg);
+        reviewCommentArea.setForeground(new Color(220, 222, 235));
+        reviewCommentArea.setCaretColor(Color.WHITE);
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        submitReviewButton    = new JButton("Submit Review");
-        addToCollectionButton = new JButton("Add to Collection");
-        backButton            = new JButton("Back");
+        JScrollPane commentScroll = new JScrollPane(reviewCommentArea);
+        commentScroll.getViewport().setBackground(boxBg);
+        commentScroll.setBorder(BorderFactory.createLineBorder(new Color(70, 80, 100)));
+        southPanel.add(commentScroll, BorderLayout.CENTER);
+
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
+        actionPanel.setBackground(BG_PANEL);
+        backButton            = LoginView.styledButton("Back",               new Color(60, 68, 82));
+        addToCollectionButton = LoginView.styledButton("Add to Collection",  new Color(60, 110, 70));
+        submitReviewButton    = LoginView.styledButton("Submit Review",       ACCENT);
         actionPanel.add(backButton);
         actionPanel.add(addToCollectionButton);
         actionPanel.add(submitReviewButton);
@@ -128,10 +152,6 @@ public class GameDetailView extends JPanel {
 
     // ── Display ───────────────────────────────────────────────────────────────
 
-    /**
-     * Populates all fields with data from the given game.
-     * Passing null clears all fields.
-     */
     public void displayGame(Game game) {
         displayedGame = game;
         if (game == null) {
@@ -153,14 +173,12 @@ public class GameDetailView extends JPanel {
         updateImage(game.getImagePath());
     }
 
-    /** Replaces the community reviews list. */
     public void setDisplayedReviews(List<Review> reviews) {
         reviewsModel.clear();
         if (reviews == null) return;
         for (Review r : reviews) reviewsModel.addElement(r);
     }
 
-    /** Resets the review form to defaults. */
     public void clearReviewForm() {
         reviewRatingSpinner.setValue(8);
         reviewCommentArea.setText("");
@@ -176,24 +194,36 @@ public class GameDetailView extends JPanel {
 
     public void addSubmitReviewListener(ActionListener l)    { submitReviewButton.addActionListener(l); }
     public void addAddToCollectionListener(ActionListener l) { addToCollectionButton.addActionListener(l); }
-
-    /**
-     * Registers the Back button listener.
-     * This was missing in the original — back button was added inline in AppCoordinator
-     * but placed in WEST which broke the layout.
-     */
-    public void addBackListener(ActionListener l) { backButton.addActionListener(l); }
+    public void addBackListener(ActionListener l)            { backButton.addActionListener(l); }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private JLabel fieldLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setForeground(new Color(150, 158, 180));
+        return l;
+    }
+
+    private JLabel valueLabel() {
+        JLabel l = new JLabel("-");
+        l.setForeground(new Color(220, 222, 235));
+        return l;
+    }
+
+    private javax.swing.border.Border darkTitledBorder(String title) {
+        return BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(70, 85, 115)),
+                title,
+                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                new Font("SansSerif", Font.BOLD, 12),
+                new Color(150, 170, 210));
+    }
 
     private String safeText(String value) {
         return (value == null || value.isBlank()) ? "-" : value;
     }
 
-    /**
-     * Loads and scales a game image from a URL or local path.
-     * Shows "No Image" placeholder on any failure.
-     */
     private void updateImage(String imagePath) {
         if (imagePath == null || imagePath.isBlank()) {
             imageLabel.setIcon(null);

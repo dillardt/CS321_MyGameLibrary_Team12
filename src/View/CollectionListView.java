@@ -2,20 +2,12 @@ package View;
 
 import Model.Collection;
 import Model.Game;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.ListSelectionModel;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
+
+import static View.LoginView.*;
 
 /**
  * Collection manager screen.
@@ -23,10 +15,6 @@ import java.util.List;
  * Layout:
  *  CENTER — split pane: collections list (left) | games in selected collection (right)
  *  SOUTH  — Create Collection, Delete Collection, Remove Game, Back buttons
- *
- * Changes from original:
- *  - addBackListener() added so AppCoordinator can return to game list
- *  - Labels added above each list panel so users know what they're looking at
  */
 public class CollectionListView extends JPanel {
 
@@ -42,65 +30,85 @@ public class CollectionListView extends JPanel {
     private final JButton backButton;
 
     public CollectionListView() {
+        setBackground(BG_DARK);
         setLayout(new BorderLayout(8, 8));
+        setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
 
         collectionList = new JList<>(collectionListModel);
+        styleList(collectionList);
         collectionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         gamesInCollectionList = new JList<>(gamesInCollectionModel);
+        styleList(gamesInCollectionList);
         gamesInCollectionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Left panel — list of all collections
-        JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.add(new JLabel("Your Collections"), BorderLayout.NORTH);
-        leftPanel.add(new JScrollPane(collectionList), BorderLayout.CENTER);
+        // Left panel
+        JLabel leftLabel = new JLabel("Your Collections");
+        leftLabel.setForeground(new Color(150, 170, 210));
+        leftLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        leftLabel.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 0));
 
-        // Right panel — games inside the selected collection
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(new JLabel("Games in Selected Collection"), BorderLayout.NORTH);
-        rightPanel.add(new JScrollPane(gamesInCollectionList), BorderLayout.CENTER);
+        JPanel leftPanel = new JPanel(new BorderLayout(0, 4));
+        leftPanel.setBackground(new Color(35, 40, 52));
+        leftPanel.setBorder(BorderFactory.createLineBorder(new Color(60, 70, 90)));
+        leftPanel.add(leftLabel, BorderLayout.NORTH);
+        JScrollPane leftScroll = new JScrollPane(collectionList);
+        leftScroll.getViewport().setBackground(new Color(35, 40, 52));
+        leftScroll.setBorder(BorderFactory.createEmptyBorder());
+        leftPanel.add(leftScroll, BorderLayout.CENTER);
+
+        // Right panel
+        JLabel rightLabel = new JLabel("Games in Selected Collection");
+        rightLabel.setForeground(new Color(150, 170, 210));
+        rightLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        rightLabel.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 0));
+
+        JPanel rightPanel = new JPanel(new BorderLayout(0, 4));
+        rightPanel.setBackground(new Color(35, 40, 52));
+        rightPanel.setBorder(BorderFactory.createLineBorder(new Color(60, 70, 90)));
+        rightPanel.add(rightLabel, BorderLayout.NORTH);
+        JScrollPane rightScroll = new JScrollPane(gamesInCollectionList);
+        rightScroll.getViewport().setBackground(new Color(35, 40, 52));
+        rightScroll.setBorder(BorderFactory.createEmptyBorder());
+        rightPanel.add(rightScroll, BorderLayout.CENTER);
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
         splitPane.setResizeWeight(0.4);
+        splitPane.setBackground(BG_DARK);
+        splitPane.setBorder(BorderFactory.createEmptyBorder());
         add(splitPane, BorderLayout.CENTER);
 
         // Bottom button bar
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        backButton             = new JButton("Back");
-        createCollectionButton = new JButton("Create Collection");
-        deleteCollectionButton = new JButton("Delete Collection");
-        removeGameButton       = new JButton("Remove Game");
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
+        buttonPanel.setBackground(BG_PANEL);
+        backButton             = LoginView.styledButton("Back",               new Color(60, 68, 82));
+        createCollectionButton = LoginView.styledButton("Create Collection",  new Color(60, 110, 70));
+        deleteCollectionButton = LoginView.styledButton("Delete Collection",  new Color(140, 60, 60));
+        removeGameButton       = LoginView.styledButton("Remove Game",        new Color(130, 80, 40));
         buttonPanel.add(backButton);
         buttonPanel.add(createCollectionButton);
         buttonPanel.add(deleteCollectionButton);
         buttonPanel.add(removeGameButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Selecting a collection refreshes the games panel automatically
         collectionList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                showGamesForSelectedCollection();
-            }
+            if (!e.getValueIsAdjusting()) showGamesForSelectedCollection();
         });
     }
 
     // ── Data setters ──────────────────────────────────────────────────────────
 
-    /** Replaces the list of collections and refreshes the games panel. */
     public void setCollections(List<Collection> collections) {
         collectionListModel.clear();
-        if (collections != null) {
-            for (Collection c : collections) collectionListModel.addElement(c);
-        }
+        if (collections != null) for (Collection c : collections) collectionListModel.addElement(c);
         showGamesForSelectedCollection();
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public Collection getSelectedCollection()     { return collectionList.getSelectedValue(); }
-    public Game       getSelectedGameInCollection(){ return gamesInCollectionList.getSelectedValue(); }
+    public Collection getSelectedCollection()      { return collectionList.getSelectedValue(); }
+    public Game       getSelectedGameInCollection() { return gamesInCollectionList.getSelectedValue(); }
 
-    /** Shows an input dialog and returns the trimmed name, or null if cancelled. */
     public String promptForCollectionName() {
         String name = JOptionPane.showInputDialog(this, "Enter collection name:");
         return name == null ? null : name.trim();
@@ -115,16 +123,17 @@ public class CollectionListView extends JPanel {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Reloads the right-side game list based on the currently selected collection.
-     * Called automatically when the collection selection changes.
-     */
     private void showGamesForSelectedCollection() {
         gamesInCollectionModel.clear();
         Collection selected = collectionList.getSelectedValue();
         if (selected == null) return;
-        for (Game g : selected.getGames()) {
-            gamesInCollectionModel.addElement(g);
-        }
+        for (Game g : selected.getGames()) gamesInCollectionModel.addElement(g);
+    }
+
+    private void styleList(JList<?> list) {
+        list.setBackground(new Color(35, 40, 52));
+        list.setForeground(new Color(210, 215, 230));
+        list.setSelectionBackground(ACCENT);
+        list.setSelectionForeground(Color.WHITE);
     }
 }
