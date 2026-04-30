@@ -152,13 +152,27 @@ public class GameController {
      * @return games that pass all active filters
      */
     public List<Game> filterGames(String genre, int players, double minRating) {
+        return filterWithinList(gameDatabase.getAllGames(), genre, players, minRating);
+    }
+
+    /**
+     * Filters a provided list of games rather than the full database.
+     * Used when a collection is selected — filters only within that collection.
+     * Same filter logic as filterGames.
+     *
+     * @param base      the list to filter within
+     * @param genre     genre string to match, empty string = any
+     * @param players   exact player count to support, 0 = any
+     * @param minRating minimum average rating, -1 = any
+     * @return games from base that pass all active filters
+     */
+    public List<Game> filterWithinList(List<Game> base, String genre, int players, double minRating) {
         List<Game> results = new ArrayList<>();
-        for (Game game : gameDatabase.getAllGames()) {
+        for (Game game : base) {
             boolean matches = true;
             if (genre != null && !genre.isEmpty()
                     && (game.getGenre() == null || !game.getGenre().equalsIgnoreCase(genre)))
                 matches = false;
-            // Check that the selected player count falls within the game's supported range
             if (players > 0
                     && (players < game.getMinPlayers() || players > game.getMaxPlayers()))
                 matches = false;
