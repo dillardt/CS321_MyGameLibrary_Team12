@@ -51,6 +51,10 @@ public class User {
      * @return the newly created Collection
      */
     public Collection createCollection(String name) {
+        // don't allow a collection with the same name to be created twice
+        for (Collection c : collections) {
+            if (c.getName().equalsIgnoreCase(name)) return null;
+        }
         Collection c = new Collection(name);
         collections.add(c);
         return c;
@@ -148,8 +152,8 @@ public class User {
     /** @return the username */
     public String getUsername()              { return username; }
 
-    /** @return the stored password */
-    public String getPassword()              { return password; }
+    /** Package-private — only UserDatabase should access the raw password for persistence. */
+    String getPassword()                     { return password; }
 
     /** @return the user's role */
     public UserRole getRole()                { return role; }
