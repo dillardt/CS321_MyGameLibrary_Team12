@@ -41,6 +41,10 @@ public class AppCoordinator {
     private final UserDatabase userDatabase;
     private final GameDatabase gameDatabase;
 
+    // Holds the current filtered result so search always runs within it.
+    // null means no filter is active — search uses the full game list.
+    private List<Game> activeFilteredList = null;
+
     public AppCoordinator() {
 
         userDatabase = new UserDatabase("data/users.xml");
@@ -116,7 +120,8 @@ public class AppCoordinator {
 
         loginView.addGuestLoginListener(e -> {
             authController.logout();
-            gameController.clearGuestRecentlyViewed(); // guests always start with a clean slate
+            activeFilteredList = null;  // clear any active filter
+            gameController.clearGuestRecentlyViewed();
             refreshGameList();
             gameListView.setAdminControlsVisible(false);
             showCard(CARD_GAME_LIST);
@@ -126,31 +131,40 @@ public class AppCoordinator {
 
     private void setupGameListView() {
 
-        // Search by title keyword — searches full list OR within selected collection (R8)
+        // Search — runs within the active filtered list if one is set,
+        // otherwise searches the full list or selected collection (R8)
         gameListView.addSearchListener(e -> {
             String criteria = gameListView.getSearchCriteria();
             User user = authController.getCurrentUser();
             String selectedCollection = gameListView.getSelectedCollectionName();
 
-            // R8: if a collection is selected, search within that collection only
             if (user != null && selectedCollection != null && !selectedCollection.isBlank()) {
+                // R8: collection selected — search within that collection
                 List<Game> collectionGames = gameController.getGamesByCollection(user, selectedCollection);
-                List<Game> results = gameController.searchWithinList(collectionGames, criteria);
-                gameListView.setGames(results);
+                gameListView.setGames(gameController.searchWithinList(collectionGames, criteria));
+            } else if (activeFilteredList != null) {
+                // Filter is active — search within the filtered results
+                gameListView.setGames(gameController.searchWithinList(activeFilteredList, criteria));
             } else {
-                // default: search the full game list
+                // No filter, no collection — search full list
                 gameListView.setGames(gameController.search(criteria));
             }
         });
 
-        // Filter by genre / players / min rating
+        // Filter by genre / players / min rating — saves result so search stays within it
         gameListView.addFilterListener(e -> {
-            List<Game> results = gameController.filterGames(
+            activeFilteredList = gameController.filterGames(
                     gameListView.getGenreFilter(),
                     gameListView.getPlayersFilter(),
                     gameListView.getMinRatingFilter()
             );
-            gameListView.setGames(results);
+            gameListView.setGames(activeFilteredList);
+        });
+
+        // Clear filters — resets active filter and shows full list
+        gameListView.addClearFiltersListener(e -> {
+            activeFilteredList = null;
+            gameListView.setGames(gameController.getAllGames());
         });
 
         // View details — guard: must have a selection
@@ -296,8 +310,7 @@ public class AppCoordinator {
                 }
             }
             authController.logout();
-            // Registered users keep their recentlyViewed on their User object.
-            // Only the guest list needs clearing so the next guest starts fresh.
+            activeFilteredList = null;  // clear any active filter on logout
             gameController.clearGuestRecentlyViewed();
             gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed(null));
             loginView.clearAllInputs();
