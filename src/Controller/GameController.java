@@ -141,8 +141,13 @@ public class GameController {
      * Any parameter can be set to its "no filter" value (empty string, 0, or -1)
      * to skip that filter.
      *
+     * Player count filter: the selected number must fall within the game's
+     * supported player range (minPlayers <= selected <= maxPlayers).
+     * For example, selecting 1 excludes Secret Hitler (5-10 players) because
+     * 1 is below its minimum of 5.
+     *
      * @param genre     genre string to match, empty string = any
-     * @param players   minimum player count, 0 = any
+     * @param players   exact player count to support, 0 = any
      * @param minRating minimum average rating, -1 = any
      * @return games that pass all active filters
      */
@@ -153,7 +158,9 @@ public class GameController {
             if (genre != null && !genre.isEmpty()
                     && (game.getGenre() == null || !game.getGenre().equalsIgnoreCase(genre)))
                 matches = false;
-            if (players > 0 && game.getMaxPlayers() < players)
+            // Check that the selected player count falls within the game's supported range
+            if (players > 0
+                    && (players < game.getMinPlayers() || players > game.getMaxPlayers()))
                 matches = false;
             if (minRating >= 0 && game.getAverageRating() < minRating)
                 matches = false;
