@@ -8,18 +8,25 @@ import java.util.*;
 /**
  * Handles all game operations: searching, filtering, viewing details,
  * review submission, and recently viewed tracking.
+ *
+ * Recently viewed is stored on the User object when a user is logged in,
+ * so the list persists across logout/login for the same account.
+ * Guests use the controller's own temporary list, which is cleared on logout.
  */
 public class GameController {
 
     private final GameDatabase gameDatabase;
-    private final List<Game> recentlyViewed;
+
+    // Guest-only fallback list — used when no user is logged in.
+    // When a real user is active, recentlyViewed lives on User instead.
+    private final List<Game> guestRecentlyViewed;
 
     /**
      * @param gameDatabase the loaded game database to operate on
      */
     public GameController(GameDatabase gameDatabase) {
-        this.gameDatabase   = gameDatabase;
-        this.recentlyViewed = new ArrayList<>();
+        this.gameDatabase        = gameDatabase;
+        this.guestRecentlyViewed = new ArrayList<>();
     }
 
     /**
@@ -57,16 +64,18 @@ public class GameController {
     }
 
     /**
-     * Loads the detail view for a game and tracks it in recently viewed.
+     * Records that a game was viewed and returns it.
+     * If a user is logged in, the list is stored on their User object so it
+     * survives logout and is restored when they log back in.
+     * Guests use the controller's own temporary list, cleared on logout.
      *
      * @param game        the game to view
      * @param currentUser the active session user, or null for guests
-     * @return the same game (for chaining), or null if game was null
+     * @return the same game, or null if game was null
      */
     public Game viewDetails(Game game, User currentUser) {
         if (game == null) return null;
-        if (currentUser != null) currentUser.getRecentlyViewed().add(game);
-        addRecentlyViewed(game);
+        addRecentlyViewed(game, currentUser);
         return game;
     }
 
@@ -154,23 +163,44 @@ public class GameController {
     }
 
     /**
-     * Adds a game to the top of the recently viewed list.
+     * Adds a game to the top of the correct recently viewed list.
+     * Uses the user's own list if logged in, otherwise the guest list.
      * Removes duplicates and caps the list at 10 entries.
      *
-     * @param game the game that was just viewed
+     * @param game        the game that was just viewed
+     * @param currentUser the active session user, or null for guests
      */
-    public void addRecentlyViewed(Game game) {
+    public void addRecentlyViewed(Game game, User currentUser) {
         if (game == null) return;
-        recentlyViewed.remove(game);
-        recentlyViewed.add(0, game);
-        if (recentlyViewed.size() > 10) recentlyViewed.remove(recentlyViewed.size() - 1);
+        List<Game> list = (currentUser != null)
+                ? currentUser.getRecentlyViewed()
+                : guestRecentlyViewed;
+        list.remove(game);
+        list.add(0, game);
+        if (list.size() > 10) list.remove(list.size() - 1);
     }
 
     /**
-     * @return a snapshot of the recently viewed list (newest first, max 10)
+     * Returns a snapshot of the recently viewed list for the given session.
+     * If a user is logged in, returns their personal list.
+     * If guest, returns the temporary guest list.
+     *
+     * @param currentUser the active session user, or null for guests
+     * @return recently viewed games, newest first, max 10
      */
-    public List<Game> getRecentlyViewed() {
-        return new ArrayList<>(recentlyViewed);
+    public List<Game> getRecentlyViewed(User currentUser) {
+        List<Game> list = (currentUser != null)
+                ? currentUser.getRecentlyViewed()
+                : guestRecentlyViewed;
+        return new ArrayList<>(list);
+    }
+
+    /**
+     * Clears the guest recently viewed list on logout.
+     * Registered users keep their list on their User object — no clearing needed.
+     */
+    public void clearGuestRecentlyViewed() {
+        guestRecentlyViewed.clear();
     }
 
     /**

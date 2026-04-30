@@ -116,8 +116,9 @@ public class AppCoordinator {
 
         loginView.addGuestLoginListener(e -> {
             authController.logout();
+            gameController.clearGuestRecentlyViewed(); // guests always start with a clean slate
             refreshGameList();
-            gameListView.setAdminControlsVisible(false); // guests never see admin buttons
+            gameListView.setAdminControlsVisible(false);
             showCard(CARD_GAME_LIST);
         });
     }
@@ -295,6 +296,10 @@ public class AppCoordinator {
                 }
             }
             authController.logout();
+            // Registered users keep their recentlyViewed on their User object.
+            // Only the guest list needs clearing so the next guest starts fresh.
+            gameController.clearGuestRecentlyViewed();
+            gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed(null));
             loginView.clearAllInputs();
             gameListView.setAdminControlsVisible(false);
             showCard(CARD_LOGIN);
@@ -439,7 +444,7 @@ public class AppCoordinator {
     private void navigateToGameDetail(Game game) {
         User user = authController.getCurrentUser();
         gameController.viewDetails(game, user);
-        gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed());
+        gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed(user));
         gameDetailView.displayGame(game);
         gameDetailView.setDisplayedReviews(game.getReviews());
         showCard(CARD_GAME_DETAIL);
@@ -457,9 +462,9 @@ public class AppCoordinator {
      * based on the current session state.
      */
     private void refreshGameList() {
-        gameListView.setGames(gameController.getAllGames());
-        gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed());
         User user = authController.getCurrentUser();
+        gameListView.setGames(gameController.getAllGames());
+        gameListView.setRecentlyViewedGames(gameController.getRecentlyViewed(user));
         gameListView.setCollectionNames(
                 user != null ? user.getCollectionNames() : Collections.emptyList());
     }
